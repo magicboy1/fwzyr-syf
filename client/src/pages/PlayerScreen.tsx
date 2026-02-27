@@ -28,6 +28,7 @@ export default function PlayerScreen() {
   const [feedback, setFeedback] = useState<PlayerFeedback | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [score, setScore] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -53,9 +54,12 @@ export default function PlayerScreen() {
 
           if (res.phase === "LOBBY") {
             setPhase("WAITING");
+            setGameStarted(false);
           } else if (res.phase === "END") {
             setPhase("END");
+            setGameStarted(true);
           } else if (res.phase === "QUESTION" && res.question && !res.alreadyAnswered) {
+            setGameStarted(true);
             setQuestion(res.question);
             setPhase("QUESTION");
             const elapsed = (Date.now() - res.timerStartedAt) / 1000;
@@ -70,8 +74,10 @@ export default function PlayerScreen() {
               if (r <= 0 && timerRef.current) clearInterval(timerRef.current);
             }, 100);
           } else if (res.phase === "QUESTION" && res.alreadyAnswered) {
+            setGameStarted(true);
             setPhase("ANSWERED");
           } else {
+            setGameStarted(true);
             setPhase("WAITING");
           }
         }
@@ -85,6 +91,7 @@ export default function PlayerScreen() {
     const socket = getSocket();
 
     socket.on("game:questionStart", (data) => {
+      setGameStarted(true);
       setQuestion(data.question);
       setPhase("QUESTION");
       setSelectedAnswer(null);
@@ -141,6 +148,7 @@ export default function PlayerScreen() {
     socket.on("game:restarted", () => {
       setPhase("WAITING");
       setScore(0);
+      setGameStarted(false);
       setQuestion(null);
       setFeedback(null);
       setSelectedAnswer(null);
@@ -239,11 +247,16 @@ export default function PlayerScreen() {
         {phase === "WAITING" && (
           <motion.div key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center p-6">
             <div className="text-center">
+              <img src={logoUrl} alt="فوازير سيف" className="h-14 mx-auto mb-4 object-contain opacity-80" />
               <p className="text-lg text-muted-foreground mb-2">مرحباً</p>
-              <h2 className="text-3xl font-bold text-[#CDB58B] mb-4" dir="auto">{playerName}</h2>
+              <h2 className="text-3xl font-bold text-[#CDB58B] mb-6" dir="auto">{playerName}</h2>
               <div className="w-16 h-16 mx-auto border-4 border-[#CDB58B]/30 border-t-[#CDB58B] rounded-full animate-spin" />
-              <p className="mt-6 text-muted-foreground">بانتظار السؤال التالي...</p>
-              <p className="mt-2 text-sm text-[#CDB58B] font-semibold" data-testid="text-score">النقاط: {score.toLocaleString()}</p>
+              <p className="mt-6 text-muted-foreground text-lg">
+                {gameStarted ? "بانتظار السؤال التالي..." : "بانتظار بدء اللعبة..."}
+              </p>
+              {gameStarted && (
+                <p className="mt-2 text-sm text-[#CDB58B] font-semibold" data-testid="text-score">النقاط: {score.toLocaleString()}</p>
+              )}
             </div>
           </motion.div>
         )}
