@@ -89,7 +89,10 @@ export default function HostScreen() {
       setAnsweredCount(data.answeredCount);
     });
 
-    socket.on("game:reveal", () => setPhase("REVEAL"));
+    socket.on("game:reveal", (data: any) => {
+      setPhase("REVEAL");
+      if (data?.isLastQuestion) setIsLastQuestion(true);
+    });
     socket.on("game:leaderboard", () => setPhase("LEADERBOARD"));
     socket.on("game:end", () => setPhase("END"));
     socket.on("game:paused", () => setPaused(true));
@@ -246,8 +249,20 @@ export default function HostScreen() {
             </>
           )}
 
-          {phase === "REVEAL" && (
-            <Button onClick={handleLeaderboard} className="w-full h-12" data-testid="button-show-leaderboard">
+          {phase === "REVEAL" && !isLastQuestion && (
+            <Button onClick={handleNext} className="w-full h-12" data-testid="button-next-question">
+              <SkipForward className="w-5 h-5 ml-2" /> السؤال التالي
+            </Button>
+          )}
+
+          {phase === "REVEAL" && isLastQuestion && (
+            <Button onClick={handleEnd} className="w-full h-12 bg-[#CDB58B] hover:bg-[#b9a178] text-[#1C1F2A]" data-testid="button-finish-game">
+              <Trophy className="w-5 h-5 ml-2" /> عرض النتائج النهائية
+            </Button>
+          )}
+
+          {(phase === "REVEAL" || phase === "LEADERBOARD") && (
+            <Button onClick={handleLeaderboard} variant="secondary" className="w-full h-12" data-testid="button-show-leaderboard">
               <Trophy className="w-5 h-5 ml-2" /> عرض الترتيب
             </Button>
           )}
@@ -264,7 +279,7 @@ export default function HostScreen() {
             </Button>
           )}
 
-          {(phase === "QUESTION" || phase === "REVEAL") && (
+          {phase === "QUESTION" && (
             <Button onClick={handleEnd} variant="destructive" className="w-full h-12" data-testid="button-end-game">
               <Square className="w-5 h-5 ml-2" /> إنهاء اللعبة
             </Button>

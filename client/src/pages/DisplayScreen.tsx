@@ -353,14 +353,13 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
               className={`h-24 rounded-2xl flex items-center gap-4 px-6 relative border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-40"}`}
               data-testid={`reveal-option-${label}`}
             >
-              <span className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${isCorrect ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}>{label}</span>
+              {isCorrect && (
+                <span className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                </span>
+              )}
               <span className={`text-xl font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{optionText}</span>
               <span className="text-lg font-bold tabular-nums text-muted-foreground" dir="ltr">{reveal.percentages[label]}%</span>
-              {isCorrect && (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-3 -left-3 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                </motion.div>
-              )}
             </motion.div>
           );
         })}

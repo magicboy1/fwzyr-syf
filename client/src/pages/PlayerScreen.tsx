@@ -300,8 +300,12 @@ export default function PlayerScreen() {
                   dir="auto"
                   data-testid={`button-answer-${label}`}
                 >
-                  <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${selectedAnswer === label ? "bg-[#CDB58B] text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{label}</span>
                   <span className="flex-1 font-medium">{question.options[i]}</span>
+                  {selectedAnswer === label && (
+                    <span className="w-6 h-6 rounded-full bg-[#CDB58B] flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    </span>
+                  )}
                 </motion.button>
               ))}
             </div>
