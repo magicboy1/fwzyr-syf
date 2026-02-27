@@ -294,8 +294,9 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       }
 
       const leaderboard = showLeaderboard(data.sessionId);
-      io.to(`session:${data.sessionId}`).emit("game:leaderboard", { leaderboard });
-      callback?.({ success: true });
+      const isLastQuestion = session.currentQuestionIndex >= session.questionIds.length - 1;
+      io.to(`session:${data.sessionId}`).emit("game:leaderboard", { leaderboard, isLastQuestion });
+      callback?.({ success: true, isLastQuestion });
     });
 
     socket.on("host:end", (data: { sessionId: string; hostKey: string }, callback) => {

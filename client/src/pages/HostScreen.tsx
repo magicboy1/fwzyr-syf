@@ -22,6 +22,7 @@ export default function HostScreen() {
   const [paused, setPaused] = useState(false);
   const [timeLimit, setTimeLimit] = useState(30);
   const [loading, setLoading] = useState(false);
+  const [isLastQuestion, setIsLastQuestion] = useState(false);
 
   const { data: questions = [] } = useQuery<Question[]>({
     queryKey: ["/api/questions"],
@@ -122,11 +123,15 @@ export default function HostScreen() {
   const handleStart = () => emit("host:start");
   const handleNext = () => { emit("host:next"); setAnsweredCount(0); };
   const handleReveal = () => emit("host:reveal");
-  const handleLeaderboard = () => emit("host:leaderboard");
+  const handleLeaderboard = () => {
+    getSocket().emit("host:leaderboard", { sessionId, hostKey }, (res: any) => {
+      if (res.isLastQuestion) setIsLastQuestion(true);
+    });
+  };
   const handleEnd = () => emit("host:end");
   const handlePause = () => emit("host:pause");
   const handleResume = () => emit("host:resume");
-  const handleRestart = () => emit("host:restart");
+  const handleRestart = () => { emit("host:restart"); setIsLastQuestion(false); };
   const handleKick = (playerId: string) => emit("host:kick", { playerId });
 
   const displayUrl = typeof window !== "undefined" ? `${window.location.origin}/display?s=${sessionId}` : "";
@@ -246,13 +251,19 @@ export default function HostScreen() {
             </Button>
           )}
 
-          {phase === "LEADERBOARD" && (
+          {phase === "LEADERBOARD" && !isLastQuestion && (
             <Button onClick={handleNext} className="w-full h-12" data-testid="button-next-question">
               <SkipForward className="w-5 h-5 ml-2" /> السؤال التالي
             </Button>
           )}
 
-          {(phase === "QUESTION" || phase === "REVEAL" || phase === "LEADERBOARD") && (
+          {phase === "LEADERBOARD" && isLastQuestion && (
+            <Button onClick={handleEnd} className="w-full h-12 bg-[#CDB58B] hover:bg-[#b9a178] text-[#1C1F2A]" data-testid="button-finish-game">
+              <Trophy className="w-5 h-5 ml-2" /> عرض النتائج النهائية
+            </Button>
+          )}
+
+          {(phase === "QUESTION" || phase === "REVEAL") && (
             <Button onClick={handleEnd} variant="destructive" className="w-full h-12" data-testid="button-end-game">
               <Square className="w-5 h-5 ml-2" /> إنهاء اللعبة
             </Button>
