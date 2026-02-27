@@ -1,0 +1,170 @@
+You are Vibe Code. build a production-ready real-time quiz web app for a live event.
+
+Project name: fawazeer-seif
+Product name (Arabic): فوازير سيف
+Product name (English): Fawazeer Seif
+
+Goal
+- create a Kahoot-like live quiz experience
+- big screen shows questions and results
+- players join via QR and answer on their phones
+- host controls the game
+- include ONLY these extra hype features (do not add more game mechanics):
+  1) one randomly selected “double points” question per game (announced)
+  2) speed streak bonus (3 correct in a row) with on-screen callout
+  3) final statistics screen after the game
+
+Must be extremely smooth, minimal, and “premium” in UX with elegant animations and event-style visuals.
+
+Branding / visual direction (match the attached reference image style)
+- theme: deep navy background + premium gold gradients
+- vibe: formal, elegant, annual suhoor event
+- avoid bright neon colors, avoid playful cartoon style
+- use subtle gold glow, soft shadows, and calm transitions
+- typography: Arabic + English support. use a clean Arabic font (like IBM Plex Sans Arabic if available) and a clean Latin font.
+- keep layout spacious, aligned, balanced
+- create a consistent design system (tokens) for colors, spacing, radius, shadows, and typography
+
+Key screens
+A) Big Screen (Audience Display)
+- lobby screen with QR + Game PIN + live player count + list/avatars of latest joiners
+- question screen with:
+  - question number + question text
+  - countdown timer (progress bar + seconds)
+  - do NOT show answer text on the big screen (show only colored option shapes A/B/C/D)
+- after-question reveal screen:
+  - show distribution of chosen answers in percentages (bar chart)
+  - reveal correct option
+  - show top 3 fastest correct players
+  - show top 5 leaderboard (with movement indicator up/down)
+- end of game:
+  - winner podium (top 3)
+  - final stats (see details below)
+  - celebratory confetti animation
+
+B) Player Mobile Web
+- join flow:
+  - enter Game PIN or scan QR deep link with PIN prefilled
+  - enter display name
+  - waiting screen with game title and status
+- answering:
+  - show 4 big buttons (A/B/C/D) with colors and large tap areas
+  - once selected, lock answer and show “answer received”
+- feedback after each question:
+  - show correct/incorrect
+  - show points gained this question
+  - show current rank (or approximate rank if needed for performance)
+- keep everything mobile-first and super responsive
+
+C) Host Controller
+- create a new session (generates PIN)
+- load question set (from built-in sample + CSV import)
+- set time per question (global default + per question override)
+- start game, next question, reveal answers, show leaderboard, end game
+- ability to pause/resume
+- ability to kick a player (optional)
+- ability to restart game with same questions (fresh scores)
+
+D) Admin / Question Management
+- CRUD questions in the browser
+- import CSV and export JSON
+- question fields:
+  - question text (Arabic/English allowed)
+  - 4 options (text)
+  - correct option (A/B/C/D)
+  - optional: category/tag
+- IMPORTANT: The big screen must not show option text, but the player screen must show it.
+
+Game mechanics
+- Standard question scoring:
+  - correct = 1000 points
+  - speed bonus up to 300 points based on remaining time (linear)
+  - incorrect = 0
+  - no negative points
+- Exactly ONE randomly selected “double points” question per game:
+  - randomly pick at game start from among all questions (if at least 3 questions exist)
+  - announce on big screen before that question starts: “double points question”
+  - scoring is multiplied by 2 for that question (including speed bonus)
+- Speed streak:
+  - if player gets 3 correct answers in a row, grant +500 bonus immediately after the 3rd correct answer
+  - show big-screen callout like: “{playerName} on fire 🔥”
+  - streak resets on incorrect or unanswered
+- Unanswered:
+  - if player does not submit before timer ends: 0 points and streak reset
+
+End-of-game Final Statistics (must be implemented)
+- show:
+  - fastest correct answer overall (player name + time)
+  - best streak (player name + streak length)
+  - hardest question (lowest % correct)
+  - average response time
+  - participation rate (% of players who answered most questions)
+- These stats should be computed from the full game data stored during the session
+
+Realtime & sync requirements
+- Must use websockets (Socket.io recommended) to sync:
+  - current game state across big screen, host, and players
+  - question timers must be authoritative on server
+  - handle reconnect: player can refresh and continue (session + player id stored in localStorage)
+- State machine approach: LOBBY -> QUESTION -> REVEAL -> LEADERBOARD -> (repeat) -> END
+- Timer:
+  - server starts timer and sends start timestamp + duration
+  - clients render with local countdown derived from server time
+  - ensure drift is minimized (periodic server time sync)
+
+Tech stack (preferred)
+- Frontend: Next.js (App Router) + TypeScript + Tailwind
+- Backend: Node/Next server with Socket.io (or a separate Node server)
+- Storage:
+  - in-memory per session is ok for MVP
+  - also implement optional persistence to a JSON file (server-side) for saving a game report after ending
+- Charts:
+  - use a lightweight chart component for answer distribution (simple bars)
+- Animations:
+  - framer-motion for transitions
+- QR:
+  - generate QR code on lobby big screen with join link: /join?pin=XXXX
+
+Non-functional requirements
+- Works well on:
+  - big screen 16:9 (1920x1080)
+  - mobile phones (iOS/Android)
+  - host on laptop
+- handles 500 concurrent players in one session reliably
+- prioritize performance and stable connections
+- security:
+  - host has a secret host key (random token) to prevent others controlling the game
+  - sanitize all user inputs (names)
+- accessibility:
+  - high contrast, large tap targets, avoid tiny text on mobile
+- i18n:
+  - UI supports Arabic and English
+  - for Arabic, apply RTL on player and big screen where appropriate
+
+Deliverables
+- complete codebase with clear folder structure
+- run scripts:
+  - dev
+  - build
+  - start
+- README with:
+  - setup steps
+  - how to run locally
+  - how to deploy
+  - CSV import format
+- include a sample question set in Arabic and English
+- ensure consistent premium theme matching the provided branding style
+
+Important constraints
+- do not add extra game modes or extra mechanics beyond those specified
+- do not show option text on the big screen
+- keep UX clean and premium, not playful
+- ensure correctness of scoring and stats
+
+Now build it.
+Return:
+1) architecture overview (files/folders)
+2) data models
+3) socket events list
+4) step-by-step build plan
+5) the full code
