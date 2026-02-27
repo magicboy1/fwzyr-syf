@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { QuestionForPlayer, PlayerFeedback } from "@shared/schema";
+import logoUrl from "@assets/logo_1772218489356.png";
 
 const OPTION_COLORS: Record<string, string> = {
   A: "from-red-500 to-red-600 active:from-red-600 active:to-red-700",
@@ -210,6 +211,7 @@ export default function PlayerScreen() {
 
         {phase === "NAME" && (
           <motion.div key="name" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center p-6">
+            <img src={logoUrl} alt="فوازير سيف" className="h-20 mb-6 object-contain opacity-90" data-testid="img-player-logo" />
             <h1 className="text-3xl font-bold text-[#CDB58B] mb-2">فوازير سيف</h1>
             <p className="text-muted-foreground mb-8">أدخل اسمك للانضمام</p>
 
