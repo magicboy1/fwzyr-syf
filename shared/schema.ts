@@ -41,7 +41,6 @@ export type GamePhase = "LOBBY" | "QUESTION" | "REVEAL" | "LEADERBOARD" | "END";
 
 export interface GameSession {
   id: string;
-  pin: string;
   hostKey: string;
   questions: Question[];
   currentQuestionIndex: number;

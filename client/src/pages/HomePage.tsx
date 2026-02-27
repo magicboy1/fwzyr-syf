@@ -1,8 +1,7 @@
-import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import logoUrl from "@assets/logo_1772218489356.png";
-import { Monitor, Smartphone, Settings, BookOpen } from "lucide-react";
+import { Monitor, QrCode, Settings, BookOpen } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -18,13 +17,11 @@ export default function HomePage() {
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
-        <Link href="/join">
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="bg-card rounded-xl p-6 border border-border/30 text-center cursor-pointer transition-colors" data-testid="link-join">
-            <Smartphone className="w-8 h-8 mx-auto mb-3 text-[#CDB58B]" />
-            <h3 className="font-semibold text-lg mb-1">انضم للعبة</h3>
-            <p className="text-sm text-muted-foreground">العب من جوالك</p>
-          </motion.div>
-        </Link>
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="bg-card rounded-xl p-6 border border-border/30 text-center opacity-70" data-testid="info-join">
+          <QrCode className="w-8 h-8 mx-auto mb-3 text-[#CDB58B]" />
+          <h3 className="font-semibold text-lg mb-1">انضم للعبة</h3>
+          <p className="text-sm text-muted-foreground">امسح رمز QR من الشاشة</p>
+        </motion.div>
 
         <Link href="/host">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-xl p-6 border border-border/30 text-center cursor-pointer transition-colors" data-testid="link-host">
@@ -42,7 +39,7 @@ export default function HomePage() {
           </motion.div>
         </Link>
 
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }} className="bg-card rounded-xl p-6 border border-border/30 text-center opacity-70" data-testid="link-display-info">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }} className="bg-card rounded-xl p-6 border border-border/30 text-center opacity-70" data-testid="info-display">
           <Monitor className="w-8 h-8 mx-auto mb-3 text-[#CDB58B]" />
           <h3 className="font-semibold text-lg mb-1">الشاشة الرئيسية</h3>
           <p className="text-sm text-muted-foreground">تفتح تلقائياً من المضيف</p>

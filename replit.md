@@ -1,24 +1,29 @@
 # Fawazeer Seif - فوازير سيف
 
 ## Overview
-Real-time live quiz web app (Kahoot-like) for the Annual Suhoor event. Features big screen display, mobile player interface, host controller, and question management.
+Real-time live quiz web app (Kahoot-like) for the Annual Suhoor event. Features big screen display, mobile player interface, host controller, and question management. All UI in Arabic, RTL layout.
 
 ## Tech Stack
 - **Frontend**: React + TypeScript + Tailwind CSS + Framer Motion + Wouter
 - **Backend**: Express.js + Socket.io
 - **Real-time**: Socket.io for WebSocket communication
 - **Storage**: In-memory (per session)
-- **Theme**: Deep navy + premium gold gradients
+- **Theme**: Background #1C1F2A, Gold #CDB58B
 - **Fonts**: IBM Plex Sans Arabic + IBM Plex Sans
 
 ## Architecture
 
+### Join Flow (QR-only)
+- No visible PIN. Each session generates a secure random sessionId (UUID).
+- The big screen lobby shows a QR code linking to `/join?s=<sessionId>`.
+- Players scan the QR code, enter their name, and join.
+- No public session listing. No way to join without the QR URL.
+
 ### Routes
 - `/` - Home page with navigation
-- `/join` - Player mobile join screen
-- `/join?pin=XXXX` - Direct join with PIN
-- `/display?pin=XXXX` - Big screen display
-- `/host` - Host controller
+- `/join?s=<sessionId>` - Player mobile join screen (QR-only access)
+- `/display?s=<sessionId>` - Big screen display
+- `/host` - Host controller (creates session, opens display)
 - `/admin` - Question management (CRUD, CSV import, JSON export)
 
 ### API Endpoints
@@ -31,8 +36,8 @@ Real-time live quiz web app (Kahoot-like) for the Annual Suhoor event. Features 
 
 ### Socket.io Events
 - `host:create`, `host:start`, `host:next`, `host:reveal`, `host:leaderboard`, `host:end`, `host:pause`, `host:resume`, `host:kick`, `host:restart`
-- `player:join`, `player:answer`, `player:reconnect`
-- `display:join`
+- `player:join` (uses sessionId, not PIN), `player:answer`, `player:reconnect`
+- `display:join` (uses sessionId)
 - `game:playerJoined`, `game:questionStart`, `game:questionEnd`, `game:reveal`, `game:leaderboard`, `game:end`, `game:streakAlert`, `game:doublePoints`, `game:paused`, `game:resumed`
 
 ### Game State Machine
@@ -58,3 +63,7 @@ LOBBY -> QUESTION -> REVEAL -> LEADERBOARD -> (repeat) -> END
 - socket.io, socket.io-client
 - qrcode.react
 - canvas-confetti, @types/canvas-confetti
+
+### localStorage Keys
+- `fawazeer_playerId`, `fawazeer_sessionId` - Player reconnection
+- `fawazeer_hostKey`, `fawazeer_hostSession` - Host reconnection

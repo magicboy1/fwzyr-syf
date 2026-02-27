@@ -16,12 +16,11 @@ const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
 export default function PlayerScreen() {
   const [, navigate] = useLocation();
-  const [phase, setPhase] = useState<"JOIN" | "WAITING" | "QUESTION" | "ANSWERED" | "FEEDBACK" | "KICKED" | "END">("JOIN");
-  const [pin, setPin] = useState("");
+  const [phase, setPhase] = useState<"NAME" | "WAITING" | "QUESTION" | "ANSWERED" | "FEEDBACK" | "KICKED" | "END" | "INVALID">("NAME");
+  const [sessionId, setSessionId] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [playerId, setPlayerId] = useState("");
-  const [sessionId, setSessionId] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [question, setQuestion] = useState<QuestionForPlayer | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -32,18 +31,22 @@ export default function PlayerScreen() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const urlPin = params.get("pin");
-    if (urlPin) setPin(urlPin);
+    const sId = params.get("s");
+
+    if (!sId) {
+      setPhase("INVALID");
+      return;
+    }
+    setSessionId(sId);
 
     const savedPlayerId = localStorage.getItem("fawazeer_playerId");
     const savedSessionId = localStorage.getItem("fawazeer_sessionId");
 
-    if (savedPlayerId && savedSessionId) {
+    if (savedPlayerId && savedSessionId && savedSessionId === sId) {
       const socket = getSocket();
       socket.emit("player:reconnect", { sessionId: savedSessionId, playerId: savedPlayerId }, (res: any) => {
         if (res.success) {
           setPlayerId(res.playerId);
-          setSessionId(savedSessionId);
           setPlayerName(res.playerName);
           setScore(res.score || 0);
 
@@ -76,7 +79,7 @@ export default function PlayerScreen() {
   }, []);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || phase === "INVALID") return;
 
     const socket = getSocket();
 
@@ -160,16 +163,15 @@ export default function PlayerScreen() {
   }, [sessionId, phase]);
 
   const handleJoin = () => {
-    if (!pin.trim() || !name.trim()) {
-      setError("الرجاء إدخال الرمز والاسم");
+    if (!name.trim()) {
+      setError("الرجاء إدخال اسمك");
       return;
     }
     setError("");
     const socket = getSocket();
-    socket.emit("player:join", { pin: pin.trim(), name: name.trim() }, (res: any) => {
+    socket.emit("player:join", { sessionId, name: name.trim() }, (res: any) => {
       if (res.success) {
         setPlayerId(res.playerId);
-        setSessionId(res.sessionId);
         setPlayerName(res.playerName);
         localStorage.setItem("fawazeer_playerId", res.playerId);
         localStorage.setItem("fawazeer_sessionId", res.sessionId);
@@ -199,23 +201,19 @@ export default function PlayerScreen() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col" dir="rtl" data-testid="player-screen">
       <AnimatePresence mode="wait">
-        {phase === "JOIN" && (
-          <motion.div key="join" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center p-6">
+        {phase === "INVALID" && (
+          <motion.div key="invalid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center p-6">
+            <h1 className="text-2xl font-bold text-[#CDB58B] mb-4">رابط غير صالح</h1>
+            <p className="text-muted-foreground text-center mb-6">امسح رمز QR من الشاشة الرئيسية للانضمام</p>
+          </motion.div>
+        )}
+
+        {phase === "NAME" && (
+          <motion.div key="name" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center p-6">
             <h1 className="text-3xl font-bold text-[#CDB58B] mb-2">فوازير سيف</h1>
-            <p className="text-muted-foreground mb-8">انضم للمسابقة</p>
+            <p className="text-muted-foreground mb-8">أدخل اسمك للانضمام</p>
 
             <div className="w-full max-w-sm space-y-4">
-              <Input
-                type="text"
-                inputMode="numeric"
-                placeholder="رمز الدخول"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                className="text-center text-2xl h-14 bg-card border-border/50 tracking-widest"
-                maxLength={6}
-                dir="ltr"
-                data-testid="input-pin"
-              />
               <Input
                 type="text"
                 placeholder="اسمك"
@@ -226,6 +224,7 @@ export default function PlayerScreen() {
                 dir="auto"
                 data-testid="input-name"
                 onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+                autoFocus
               />
               {error && <p className="text-red-400 text-sm text-center" data-testid="text-error">{error}</p>}
               <Button onClick={handleJoin} className="w-full h-14 text-lg font-semibold" data-testid="button-join">
@@ -342,21 +341,6 @@ export default function PlayerScreen() {
             <h3 className="text-2xl font-bold text-[#CDB58B] mb-4">انتهت اللعبة!</h3>
             <p className="text-4xl font-bold text-[#CDB58B] mb-2" dir="ltr" data-testid="text-final-score">{score.toLocaleString()}</p>
             <p className="text-muted-foreground">مجموع النقاط</p>
-            <Button
-              onClick={() => {
-                localStorage.removeItem("fawazeer_playerId");
-                localStorage.removeItem("fawazeer_sessionId");
-                setPhase("JOIN");
-                setPin("");
-                setName("");
-                setScore(0);
-              }}
-              variant="secondary"
-              className="mt-8"
-              data-testid="button-play-again"
-            >
-              العب مرة أخرى
-            </Button>
           </motion.div>
         )}
       </AnimatePresence>

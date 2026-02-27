@@ -3,7 +3,6 @@ import { Server as HttpServer } from "http";
 import {
   createSession,
   getSession,
-  getSessionByPin,
   addPlayer,
   reconnectPlayer,
   disconnectPlayer,
@@ -50,10 +49,9 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         callback?.({
           success: true,
           sessionId: session.id,
-          pin: session.pin,
           hostKey: session.hostKey,
         });
-        log(`Session created: ${session.pin}`, "socket");
+        log(`Session created: ${session.id}`, "socket");
       } catch (e: any) {
         callback?.({ success: false, error: e.message });
       }
@@ -73,7 +71,6 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         success: true,
         session: {
           id: session.id,
-          pin: session.pin,
           phase: session.phase,
           currentQuestionIndex: session.currentQuestionIndex,
           playerCount: getPlayerCount(session.id),
@@ -82,8 +79,8 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       });
     });
 
-    socket.on("display:join", (data: { pin: string }, callback) => {
-      const session = getSessionByPin(data.pin);
+    socket.on("display:join", (data: { sessionId: string }, callback) => {
+      const session = getSession(data.sessionId);
       if (!session) {
         callback?.({ success: false, error: "الجلسة غير موجودة" });
         return;
@@ -100,10 +97,10 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       });
     });
 
-    socket.on("player:join", (data: { pin: string; name: string }, callback) => {
-      const session = getSessionByPin(data.pin);
+    socket.on("player:join", (data: { sessionId: string; name: string }, callback) => {
+      const session = getSession(data.sessionId);
       if (!session) {
-        callback?.({ success: false, error: "اللعبة غير موجودة. تأكد من الرمز." });
+        callback?.({ success: false, error: "اللعبة غير موجودة." });
         return;
       }
       if (session.phase !== "LOBBY") {
@@ -134,7 +131,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         sessionId: session.id,
         playerName: player.name,
       });
-      log(`Player joined: ${player.name} -> ${session.pin}`, "socket");
+      log(`Player joined: ${player.name} -> ${session.id}`, "socket");
     });
 
     socket.on("player:reconnect", (data: { sessionId: string; playerId: string }, callback) => {
@@ -183,7 +180,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         return;
       }
       callback?.({ success: true });
-      log(`Game started: ${session.pin}`, "socket");
+      log(`Game started: ${session.id}`, "socket");
     });
 
     socket.on("host:next", (data: { sessionId: string; hostKey: string }, callback) => {

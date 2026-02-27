@@ -12,20 +12,14 @@ import type {
   PlayerFeedback,
 } from "@shared/schema";
 
-function generatePin(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 function generateHostKey(): string {
   return randomUUID();
 }
 
 const sessions = new Map<string, GameSession>();
-const pinToSession = new Map<string, string>();
 
 export function createSession(questions: Question[], defaultTimeLimit: number = 30): GameSession {
   const id = randomUUID();
-  const pin = generatePin();
   const hostKey = generateHostKey();
 
   let doublePointsIndex = -1;
@@ -35,7 +29,6 @@ export function createSession(questions: Question[], defaultTimeLimit: number = 
 
   const session: GameSession = {
     id,
-    pin,
     hostKey,
     questions,
     currentQuestionIndex: -1,
@@ -54,7 +47,6 @@ export function createSession(questions: Question[], defaultTimeLimit: number = 
   };
 
   sessions.set(id, session);
-  pinToSession.set(pin, id);
   return session;
 }
 
@@ -62,10 +54,6 @@ export function getSession(sessionId: string): GameSession | undefined {
   return sessions.get(sessionId);
 }
 
-export function getSessionByPin(pin: string): GameSession | undefined {
-  const id = pinToSession.get(pin);
-  return id ? sessions.get(id) : undefined;
-}
 
 export function addPlayer(sessionId: string, name: string): Player | null {
   const session = sessions.get(sessionId);
@@ -546,7 +534,6 @@ export function getAllSessions(): GameSession[] {
 export function deleteSession(sessionId: string): boolean {
   const session = sessions.get(sessionId);
   if (!session) return false;
-  pinToSession.delete(session.pin);
   sessions.delete(sessionId);
   return true;
 }

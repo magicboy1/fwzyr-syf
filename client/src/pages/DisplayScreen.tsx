@@ -18,7 +18,7 @@ const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 export default function DisplayScreen() {
   const [, navigate] = useLocation();
   const [phase, setPhase] = useState<string>("CONNECTING");
-  const [pin, setPin] = useState("");
+  const [sessionId, setSessionId] = useState("");
   const [players, setPlayers] = useState<{ id: string; name: string }[]>([]);
   const [playerCount, setPlayerCount] = useState(0);
   const [question, setQuestion] = useState<QuestionForBigScreen | null>(null);
@@ -34,20 +34,22 @@ export default function DisplayScreen() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const gamePin = params.get("pin");
-    if (!gamePin) {
+    const sId = params.get("s");
+    if (!sId) {
       navigate("/");
       return;
     }
-    setPin(gamePin);
+    setSessionId(sId);
 
     const socket = getSocket();
 
-    socket.emit("display:join", { pin: gamePin }, (res: any) => {
+    socket.emit("display:join", { sessionId: sId }, (res: any) => {
       if (res.success) {
         setPhase(res.phase || "LOBBY");
         setPlayerCount(res.playerCount || 0);
         setPlayers(res.players || []);
+      } else {
+        setPhase("ERROR");
       }
     });
 
@@ -106,7 +108,7 @@ export default function DisplayScreen() {
       setStats(data.stats);
       setPhase("END");
       setTimeout(() => {
-        confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 }, colors: ["#CDB58B", "#e8d5a8", "#1e3a5f", "#fff"] });
+        confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 }, colors: ["#CDB58B", "#e8d5a8", "#1C1F2A", "#fff"] });
       }, 500);
       setTimeout(() => {
         confetti({ particleCount: 100, spread: 80, origin: { x: 0.2, y: 0.7 }, colors: ["#CDB58B", "#e8d5a8"] });
@@ -168,7 +170,7 @@ export default function DisplayScreen() {
   }, []);
 
   const joinUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/join?pin=${pin}`
+    ? `${window.location.origin}/join?s=${sessionId}`
     : "";
 
   const timerPercent = timerDuration > 0 ? (timeLeft / timerDuration) * 100 : 0;
@@ -219,7 +221,14 @@ export default function DisplayScreen() {
         </div>
       )}
 
-      {phase === "LOBBY" && <LobbyScreen pin={pin} joinUrl={joinUrl} playerCount={playerCount} players={players} />}
+      {phase === "ERROR" && (
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <h2 className="text-3xl font-bold text-[#CDB58B] mb-4">الجلسة غير موجودة</h2>
+          <p className="text-muted-foreground">أنشئ جلسة جديدة من لوحة المضيف</p>
+        </div>
+      )}
+
+      {phase === "LOBBY" && <LobbyScreen sessionId={sessionId} joinUrl={joinUrl} playerCount={playerCount} players={players} />}
       {phase === "QUESTION" && question && (
         <QuestionScreen question={question} timeLeft={timeLeft} timerPercent={timerPercent} paused={paused} />
       )}
@@ -230,7 +239,7 @@ export default function DisplayScreen() {
   );
 }
 
-function LobbyScreen({ pin, joinUrl, playerCount, players }: { pin: string; joinUrl: string; playerCount: number; players: { id: string; name: string }[] }) {
+function LobbyScreen({ sessionId, joinUrl, playerCount, players }: { sessionId: string; joinUrl: string; playerCount: number; players: { id: string; name: string }[] }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col items-center justify-center p-8" data-testid="lobby-screen">
       <div className="mb-8">
@@ -240,28 +249,22 @@ function LobbyScreen({ pin, joinUrl, playerCount, players }: { pin: string; join
       <motion.h1 initial={{ y: -30 }} animate={{ y: 0 }} className="text-5xl font-bold text-[#CDB58B] mb-2">
         فوازير سيف
       </motion.h1>
-      <p className="text-xl text-muted-foreground mb-12">المسابقة التفاعلية المباشرة</p>
+      <p className="text-xl text-muted-foreground mb-12">امسح الرمز للانضمام</p>
 
-      <div className="flex flex-col md:flex-row gap-12 items-center">
-        <div className="bg-white p-6 rounded-2xl shadow-2xl" data-testid="qr-code">
-          <QRCodeSVG value={joinUrl} size={220} level="H" bgColor="#ffffff" fgColor="#1C1F2A" />
-        </div>
+      <div className="flex flex-col items-center">
+        <motion.div
+          animate={{ scale: [1, 1.03, 1] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="bg-white p-8 rounded-3xl shadow-2xl shadow-[#CDB58B]/10 mb-10"
+          data-testid="qr-code"
+        >
+          <QRCodeSVG value={joinUrl} size={280} level="H" bgColor="#ffffff" fgColor="#1C1F2A" />
+        </motion.div>
 
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground mb-3">رمز الدخول</p>
-          <div className="flex gap-2 justify-center mb-8" dir="ltr" data-testid="text-pin">
-            {pin.split("").map((d, i) => (
-              <motion.span key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: i * 0.1 }} className="w-16 h-20 flex items-center justify-center text-4xl font-bold bg-gradient-to-b from-card to-muted rounded-xl border border-border/50 text-[#CDB58B]">
-                {d}
-              </motion.span>
-            ))}
-          </div>
-
-          <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }} className="bg-card/80 backdrop-blur rounded-2xl px-10 py-6 border border-[#CDB58B]/20">
-            <p className="text-6xl font-bold text-[#CDB58B]" data-testid="text-player-count">{playerCount}</p>
-            <p className="text-lg text-muted-foreground mt-1">لاعب انضموا</p>
-          </motion.div>
-        </div>
+        <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }} className="bg-card/80 backdrop-blur rounded-2xl px-10 py-6 border border-[#CDB58B]/20">
+          <p className="text-6xl font-bold text-[#CDB58B]" data-testid="text-player-count">{playerCount}</p>
+          <p className="text-lg text-muted-foreground mt-1">لاعب انضموا</p>
+        </motion.div>
       </div>
 
       {players.length > 0 && (

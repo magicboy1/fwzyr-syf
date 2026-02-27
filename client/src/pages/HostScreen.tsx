@@ -13,7 +13,6 @@ export default function HostScreen() {
   const [connected, setConnected] = useState(false);
   const [sessionId, setSessionId] = useState("");
   const [hostKey, setHostKey] = useState("");
-  const [pin, setPin] = useState("");
   const [phase, setPhase] = useState<GamePhase>("LOBBY");
   const [playerCount, setPlayerCount] = useState(0);
   const [players, setPlayers] = useState<{ id: string; name: string }[]>([]);
@@ -37,7 +36,6 @@ export default function HostScreen() {
       if (res.success) {
         setSessionId(res.sessionId);
         setHostKey(res.hostKey);
-        setPin(res.pin);
         setConnected(true);
         setTotalQ(questions.length);
         localStorage.setItem("fawazeer_hostKey", res.hostKey);
@@ -55,7 +53,6 @@ export default function HostScreen() {
         if (res.success) {
           setSessionId(res.session.id);
           setHostKey(savedHostKey);
-          setPin(res.session.pin);
           setPhase(res.session.phase);
           setCurrentQ(res.session.currentQuestionIndex);
           setPlayerCount(res.session.playerCount);
@@ -132,7 +129,11 @@ export default function HostScreen() {
   const handleRestart = () => emit("host:restart");
   const handleKick = (playerId: string) => emit("host:kick", { playerId });
 
-  const displayUrl = typeof window !== "undefined" ? `${window.location.origin}/display?pin=${pin}` : "";
+  const displayUrl = typeof window !== "undefined" ? `${window.location.origin}/display?s=${sessionId}` : "";
+
+  const openDisplay = () => {
+    window.open(displayUrl, "_blank");
+  };
 
   if (!connected) {
     return (
@@ -177,7 +178,6 @@ export default function HostScreen() {
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-xl font-bold text-[#CDB58B]">لوحة المضيف</h1>
-            <p className="text-sm text-muted-foreground">الرمز: <span className="text-foreground font-mono font-bold tracking-wider" dir="ltr">{pin}</span></p>
           </div>
           <div className="text-left">
             <p className="text-sm text-muted-foreground">المرحلة</p>
@@ -188,8 +188,10 @@ export default function HostScreen() {
         </div>
 
         <div className="bg-card rounded-xl p-4 border border-border/30 mb-6">
-          <p className="text-sm text-muted-foreground mb-1">رابط الشاشة الرئيسية</p>
-          <p className="text-xs font-mono text-foreground/80 break-all" dir="ltr" data-testid="text-display-url">{displayUrl}</p>
+          <p className="text-sm text-muted-foreground mb-2">الشاشة الرئيسية</p>
+          <Button onClick={openDisplay} variant="secondary" className="w-full" data-testid="button-open-display">
+            فتح الشاشة الرئيسية
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
