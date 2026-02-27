@@ -7,12 +7,6 @@ import confetti from "canvas-confetti";
 import logoUrl from "@assets/logo_1772218489356.png";
 import type { QuestionForBigScreen, QuestionReveal, LeaderboardEntry, FinalStats } from "@shared/schema";
 
-const OPTION_COLORS = {
-  A: "from-red-500/80 to-red-600/80",
-  B: "from-blue-500/80 to-blue-600/80",
-  C: "from-emerald-500/80 to-emerald-600/80",
-  D: "from-amber-500/80 to-amber-600/80",
-};
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
 export default function DisplayScreen() {
@@ -32,19 +26,22 @@ export default function DisplayScreen() {
   const [paused, setPaused] = useState(false);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownNum, setCountdownNum] = useState(3);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const prevAnsweredRef = useRef(0);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sId = params.get("s");
     if (!sId) {
-      navigate("/");
+      setPhase("ERROR");
       return;
     }
     setSessionId(sId);
 
     const socket = getSocket();
-
     socket.emit("display:join", { sessionId: sId }, (res: any) => {
       if (res.success) {
         setPhase(res.phase || "LOBBY");
@@ -59,7 +56,6 @@ export default function DisplayScreen() {
       setPlayerCount(data.playerCount);
       setPlayers(data.players);
     });
-
     socket.on("game:playerLeft", (data) => {
       setPlayerCount(data.playerCount);
       setPlayers(data.players);
@@ -77,16 +73,37 @@ export default function DisplayScreen() {
 
     socket.on("game:questionStart", (data) => {
       setQuestion(data.question);
-      setPhase("QUESTION");
       setTimerDuration(data.question.timeLimit);
       setTimeLeft(data.question.timeLimit);
       setPaused(false);
       setStreakAlert(null);
       setAnsweredCount(0);
       setTotalPlayers(data.totalPlayers || 0);
+      prevAnsweredRef.current = 0;
 
+      if (countdownRef.current) clearInterval(countdownRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
-      const start = Date.now();
+
+      const CD_STEPS = 3;
+      const CD_INTERVAL = 600;
+      const CD_TOTAL = CD_STEPS * CD_INTERVAL;
+
+      setShowCountdown(true);
+      setCountdownNum(CD_STEPS);
+      let count = CD_STEPS;
+      countdownRef.current = setInterval(() => {
+        count--;
+        if (count > 0) {
+          setCountdownNum(count);
+        } else {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          countdownRef.current = null;
+          setShowCountdown(false);
+          setPhase("QUESTION");
+        }
+      }, CD_INTERVAL);
+
+      const start = Date.now() + CD_TOTAL;
       timerRef.current = setInterval(() => {
         const elapsed = (Date.now() - start) / 1000;
         const remaining = Math.max(0, data.question.timeLimit - elapsed);
@@ -117,19 +134,20 @@ export default function DisplayScreen() {
       setStats(data.stats);
       setPhase("END");
       setTimeout(() => {
-        confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 }, colors: ["#CDB58B", "#e8d5a8", "#1C1F2A", "#fff"] });
+        const duration = 4000;
+        const end = Date.now() + duration;
+        const frame = () => {
+          confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: ["#CDB58B", "#e8d5a8", "#a89160"] });
+          confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: ["#CDB58B", "#e8d5a8", "#a89160"] });
+          if (Date.now() < end) requestAnimationFrame(frame);
+        };
+        frame();
       }, 500);
-      setTimeout(() => {
-        confetti({ particleCount: 100, spread: 80, origin: { x: 0.2, y: 0.7 }, colors: ["#CDB58B", "#e8d5a8"] });
-      }, 1200);
-      setTimeout(() => {
-        confetti({ particleCount: 100, spread: 80, origin: { x: 0.8, y: 0.7 }, colors: ["#CDB58B", "#e8d5a8"] });
-      }, 1800);
     });
 
     socket.on("game:streakAlert", (data) => {
       setStreakAlert(data);
-      setTimeout(() => setStreakAlert(null), 4000);
+      setTimeout(() => setStreakAlert(null), 3000);
     });
 
     socket.on("game:paused", () => {
@@ -163,6 +181,7 @@ export default function DisplayScreen() {
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
       socket.off("game:playerJoined");
       socket.off("game:playerLeft");
       socket.off("game:doublePoints");
@@ -186,26 +205,58 @@ export default function DisplayScreen() {
   const timerPercent = timerDuration > 0 ? (timeLeft / timerDuration) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden relative" dir="rtl" data-testid="display-screen">
+    <div className="min-h-screen bg-background text-foreground overflow-hidden" dir="rtl" data-testid="display-screen">
       <AnimatePresence mode="wait">
         {showDoublePoints && (
           <motion.div
             key="double"
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
+            initial={{ opacity: 0, scale: 0.3, rotate: -10 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            exit={{ opacity: 0, scale: 2 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
           >
             <div className="text-center">
               <motion.div
-                animate={{ scale: [1, 1.15, 1] }}
-                transition={{ duration: 0.8, repeat: Infinity }}
-                className="text-7xl font-bold text-[#CDB58B]"
+                animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+                className="text-8xl font-bold text-[#CDB58B] drop-shadow-[0_0_30px_rgba(205,181,139,0.5)]"
               >
                 x2
               </motion.div>
-              <p className="text-3xl text-[#CDB58B] mt-4 font-semibold">سؤال النقاط المضاعفة!</p>
+              <motion.p
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-3xl text-[#CDB58B] mt-6 font-semibold"
+              >
+                سؤال النقاط المضاعفة!
+              </motion.p>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCountdown && (
+          <motion.div
+            key="countdown"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={countdownNum}
+                initial={{ scale: 3, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.3, opacity: 0 }}
+                transition={{ duration: 0.4, ease: "backOut" }}
+                className="text-9xl font-black text-[#CDB58B] drop-shadow-[0_0_60px_rgba(205,181,139,0.6)]"
+              >
+                {countdownNum}
+              </motion.div>
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -213,14 +264,18 @@ export default function DisplayScreen() {
       <AnimatePresence>
         {streakAlert && (
           <motion.div
-            initial={{ opacity: 0, y: -100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -100 }}
+            initial={{ opacity: 0, y: -100, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -100, scale: 0.8 }}
             className="fixed top-8 left-1/2 -translate-x-1/2 z-40 bg-gradient-to-r from-orange-500 to-red-500 px-10 py-4 rounded-2xl shadow-2xl"
           >
-            <p className="text-2xl font-bold text-white text-center">
-              {streakAlert.playerName} مشتعل! سلسلة {streakAlert.streak}
-            </p>
+            <motion.p
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 0.5, repeat: Infinity }}
+              className="text-2xl font-bold text-white text-center"
+            >
+              🔥 {streakAlert.playerName} مشتعل! سلسلة {streakAlert.streak}
+            </motion.p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -252,27 +307,58 @@ export default function DisplayScreen() {
 function LobbyScreen({ sessionId, joinUrl, playerCount, players }: { sessionId: string; joinUrl: string; playerCount: number; players: { id: string; name: string }[] }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col items-center justify-center p-8" data-testid="lobby-screen">
-      <div className="mb-8">
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", bounce: 0.4 }}
+        className="mb-8"
+      >
         <img src={logoUrl} alt="السحور السنوي" className="h-20 mx-auto object-contain opacity-90" data-testid="img-logo" />
-      </div>
+      </motion.div>
 
-      <motion.h1 initial={{ y: -30 }} animate={{ y: 0 }} className="text-5xl font-bold text-[#CDB58B] mb-2">
+      <motion.h1
+        initial={{ y: -30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", bounce: 0.3, delay: 0.1 }}
+        className="text-5xl font-bold gold-shimmer mb-2"
+      >
         فوازير سيف
       </motion.h1>
-      <p className="text-xl text-muted-foreground mb-12">امسح الرمز للانضمام</p>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="text-xl text-muted-foreground mb-12"
+      >
+        امسح الرمز للانضمام
+      </motion.p>
 
       <div className="flex flex-col items-center">
         <motion.div
-          animate={{ scale: [1, 1.03, 1] }}
-          transition={{ duration: 3, repeat: Infinity }}
+          initial={{ scale: 0, rotate: -10 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", bounce: 0.4, delay: 0.2 }}
+          whileHover={{ scale: 1.05 }}
           className="bg-white p-8 rounded-3xl shadow-2xl shadow-[#CDB58B]/10 mb-10"
           data-testid="qr-code"
         >
           <QRCodeSVG value={joinUrl} size={280} level="H" bgColor="#ffffff" fgColor="#1C1F2A" />
         </motion.div>
 
-        <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }} className="bg-card/80 backdrop-blur rounded-2xl px-10 py-6 border border-[#CDB58B]/20">
-          <p className="text-6xl font-bold text-[#CDB58B]" data-testid="text-player-count">{playerCount}</p>
+        <motion.div
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="bg-card/80 backdrop-blur rounded-2xl px-10 py-6 border border-[#CDB58B]/20"
+        >
+          <motion.p
+            key={playerCount}
+            initial={{ scale: 1.5, color: "#e8d5a8" }}
+            animate={{ scale: 1, color: "#CDB58B" }}
+            className="text-6xl font-bold text-[#CDB58B]"
+            data-testid="text-player-count"
+          >
+            {playerCount}
+          </motion.p>
           <p className="text-lg text-muted-foreground mt-1">لاعب انضموا</p>
         </motion.div>
       </div>
@@ -280,7 +366,14 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, players }: { sessionId: 
       {players.length > 0 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-10 flex flex-wrap gap-3 justify-center max-w-3xl">
           {players.slice(-20).map((p, i) => (
-            <motion.span key={p.id} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} className="px-4 py-2 bg-card rounded-full border border-border/50 text-sm font-medium" data-testid={`text-player-${p.id}`}>
+            <motion.span
+              key={p.id}
+              initial={{ opacity: 0, scale: 0, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", bounce: 0.5, delay: i * 0.05 }}
+              className="px-4 py-2 bg-card rounded-full border border-border/50 text-sm font-medium"
+              data-testid={`text-player-${p.id}`}
+            >
               {p.name}
             </motion.span>
           ))}
@@ -294,22 +387,42 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="question-screen">
       <div className="flex items-center justify-between mb-6 gap-4">
-        <span className="text-muted-foreground text-lg">
+        <motion.span
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="text-muted-foreground text-lg"
+        >
           سؤال {question.index + 1} من {question.totalQuestions}
-        </span>
+        </motion.span>
         {question.isDoublePoints && (
-          <span className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] text-sm font-semibold">
+          <motion.span
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 1, repeat: Infinity }}
+            className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] text-sm font-semibold"
+          >
             x2 نقاط مضاعفة
-          </span>
+          </motion.span>
         )}
         <div className="flex items-center gap-6">
-          <span className="text-muted-foreground text-lg" data-testid="text-answered-count" dir="ltr">
+          <motion.span
+            key={answeredCount}
+            initial={{ scale: 1.3 }}
+            animate={{ scale: 1 }}
+            className="text-muted-foreground text-lg"
+            data-testid="text-answered-count"
+            dir="ltr"
+          >
             {answeredCount}/{totalPlayers}
-          </span>
+          </motion.span>
           {paused && <span className="text-[#CDB58B] font-semibold">متوقف</span>}
-          <span className="text-3xl font-bold text-[#CDB58B] tabular-nums" data-testid="text-timer">
+          <motion.span
+            className={`text-3xl font-bold tabular-nums ${timeLeft <= 5 ? "text-red-400" : "text-[#CDB58B]"}`}
+            animate={timeLeft <= 5 && timeLeft > 0 ? { scale: [1, 1.15, 1] } : {}}
+            transition={{ duration: 0.5, repeat: Infinity }}
+            data-testid="text-timer"
+          >
             {Math.ceil(timeLeft)}
-          </span>
+          </motion.span>
         </div>
       </div>
 
@@ -326,8 +439,9 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
 
       <div className="flex-1 flex flex-col items-center justify-center">
         <motion.h2
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+          initial={{ y: 40, opacity: 0, scale: 0.9 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          transition={{ type: "spring", bounce: 0.3, duration: 0.8 }}
           className="text-4xl lg:text-6xl font-bold text-center leading-relaxed max-w-4xl"
           dir="auto"
           data-testid="text-question"
@@ -340,6 +454,15 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
 }
 
 function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: QuestionForBigScreen | null }) {
+  useEffect(() => {
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.5 },
+      colors: ["#CDB58B", "#22c55e", "#e8d5a8"],
+    });
+  }, []);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="reveal-screen">
       <div className="mb-6">
@@ -360,19 +483,36 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
           return (
             <motion.div
               key={label}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: isCorrect ? 1.05 : 1, opacity: 1 }}
-              transition={{ delay: i * 0.1 }}
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{
+                scale: isCorrect ? 1.05 : 1,
+                opacity: 1,
+                y: 0,
+              }}
+              transition={{ delay: i * 0.15, type: "spring", bounce: 0.4 }}
               className={`h-24 rounded-2xl flex items-center gap-4 px-6 relative border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-40"}`}
               data-testid={`reveal-option-${label}`}
             >
               {isCorrect && (
-                <span className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                <motion.span
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.6, type: "spring", bounce: 0.5 }}
+                  className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center shrink-0"
+                >
                   <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                </span>
+                </motion.span>
               )}
               <span className={`text-xl font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{optionText}</span>
-              <span className="text-lg font-bold tabular-nums text-muted-foreground" dir="ltr">{reveal.percentages[label]}%</span>
+              <motion.span
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 + i * 0.1 }}
+                className="text-lg font-bold tabular-nums text-muted-foreground"
+                dir="ltr"
+              >
+                {reveal.percentages[label]}%
+              </motion.span>
             </motion.div>
           );
         })}
@@ -380,33 +520,55 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1">
         {reveal.topFastest.length > 0 && (
-          <div className="bg-card/50 rounded-2xl p-6 border border-border/30">
+          <motion.div
+            initial={{ x: -40, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="bg-card/50 rounded-2xl p-6 border border-border/30"
+          >
             <h3 className="text-lg font-semibold text-[#CDB58B] mb-4">الأسرع إجابة</h3>
             {reveal.topFastest.map((p, i) => (
-              <motion.div key={i} initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.2 }} className="flex items-center gap-4 mb-3">
-                <span className="w-8 h-8 rounded-full bg-[#CDB58B]/20 flex items-center justify-center font-bold text-[#CDB58B] text-sm">{i + 1}</span>
+              <motion.div key={i} initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.7 + i * 0.2, type: "spring" }} className="flex items-center gap-4 mb-3">
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.8 + i * 0.2, type: "spring", bounce: 0.6 }}
+                  className="w-8 h-8 rounded-full bg-[#CDB58B]/20 flex items-center justify-center font-bold text-[#CDB58B] text-sm"
+                >
+                  {i + 1}
+                </motion.span>
                 <span className="font-medium flex-1" dir="auto">{p.name}</span>
                 <span className="text-muted-foreground" dir="ltr">{(p.timeMs / 1000).toFixed(1)}ث</span>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
-        <div className="bg-card/50 rounded-2xl p-6 border border-border/30">
+        <motion.div
+          initial={{ x: 40, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="bg-card/50 rounded-2xl p-6 border border-border/30"
+        >
           <h3 className="text-lg font-semibold text-[#CDB58B] mb-4">أفضل ٥</h3>
           {reveal.leaderboard.slice(0, 5).map((entry, i) => (
-            <motion.div key={entry.playerId} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.15 }} className="flex items-center gap-4 mb-3">
+            <motion.div key={entry.playerId} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.7 + i * 0.15, type: "spring" }} className="flex items-center gap-4 mb-3">
               <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}>{entry.rank}</span>
               <span className="font-medium flex-1" dir="auto">{entry.name}</span>
               {entry.previousRank !== null && entry.previousRank !== entry.rank && (
-                <span className={`text-sm ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}>
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 1 + i * 0.1, type: "spring" }}
+                  className={`text-sm ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}
+                >
                   {entry.rank < entry.previousRank ? `+${entry.previousRank - entry.rank}` : `-${entry.rank - entry.previousRank}`}
-                </span>
+                </motion.span>
               )}
               <span className="font-bold text-[#CDB58B] tabular-nums" dir="ltr">{entry.score.toLocaleString()}</span>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </motion.div>
   );
@@ -415,27 +577,52 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
 function LeaderboardScreen({ leaderboard }: { leaderboard: LeaderboardEntry[] }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-12" data-testid="leaderboard-screen">
-      <h2 className="text-4xl font-bold text-[#CDB58B] mb-12">لوحة المتصدرين</h2>
+      <motion.h2
+        initial={{ y: -30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", bounce: 0.4 }}
+        className="text-4xl font-bold text-[#CDB58B] mb-12"
+      >
+        لوحة المتصدرين
+      </motion.h2>
       <div className="w-full max-w-2xl">
         {leaderboard.slice(0, 10).map((entry, i) => (
           <motion.div
             key={entry.playerId}
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: i * 0.1 }}
+            initial={{ x: i % 2 === 0 ? -80 : 80, opacity: 0, scale: 0.9 }}
+            animate={{ x: 0, opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.12, type: "spring", bounce: 0.3 }}
             className={`flex items-center gap-6 mb-4 p-4 rounded-xl ${i < 3 ? "bg-[#CDB58B]/10 border border-[#CDB58B]/20" : "bg-card/50 border border-border/20"}`}
             data-testid={`leaderboard-entry-${i}`}
           >
-            <span className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white shadow-lg shadow-[#CDB58B]/30" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}>
+            <motion.span
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: i * 0.12 + 0.2, type: "spring", bounce: 0.5 }}
+              className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white shadow-lg shadow-[#CDB58B]/30" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}
+            >
               {entry.rank}
-            </span>
+            </motion.span>
             <span className="text-xl font-semibold flex-1" dir="auto">{entry.name}</span>
             {entry.previousRank !== null && entry.previousRank !== entry.rank && (
-              <span className={`text-sm font-medium ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}>
-                {entry.rank < entry.previousRank ? `+${entry.previousRank - entry.rank}` : `-${entry.rank - entry.previousRank}`}
-              </span>
+              <motion.span
+                initial={{ y: entry.rank < entry.previousRank ? 20 : -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: i * 0.12 + 0.3, type: "spring" }}
+                className={`text-sm font-medium ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}
+              >
+                {entry.rank < entry.previousRank ? `▲${entry.previousRank - entry.rank}` : `▼${entry.rank - entry.previousRank}`}
+              </motion.span>
             )}
-            <span className="text-2xl font-bold text-[#CDB58B] tabular-nums" dir="ltr">{entry.score.toLocaleString()}</span>
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: i * 0.12 + 0.3, type: "spring" }}
+              className="text-2xl font-bold text-[#CDB58B] tabular-nums"
+              dir="ltr"
+            >
+              {entry.score.toLocaleString()}
+            </motion.span>
           </motion.div>
         ))}
       </div>
@@ -446,35 +633,88 @@ function LeaderboardScreen({ leaderboard }: { leaderboard: LeaderboardEntry[] })
 function EndScreen({ stats }: { stats: FinalStats }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen flex flex-col items-center p-8 lg:p-12 overflow-y-auto" data-testid="end-screen">
-      <img src={logoUrl} alt="الشعار" className="h-12 mb-6 opacity-80" />
-      <h2 className="text-4xl font-bold text-[#CDB58B] mb-4">انتهت اللعبة!</h2>
+      <motion.img
+        initial={{ y: -40, opacity: 0 }}
+        animate={{ y: 0, opacity: 0.8 }}
+        transition={{ type: "spring", bounce: 0.4 }}
+        src={logoUrl}
+        alt="الشعار"
+        className="h-12 mb-6"
+      />
+      <motion.h2
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", bounce: 0.5 }}
+        className="text-4xl font-bold text-[#CDB58B] mb-4"
+      >
+        انتهت اللعبة!
+      </motion.h2>
 
       {stats.podium.length > 0 && (
         <div className="flex items-end justify-center gap-6 mb-12 mt-8">
           {stats.podium.length > 1 && (
-            <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="flex flex-col items-center">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-2xl font-bold text-gray-800 mb-3 shadow-lg">2</div>
+            <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
+              <motion.div
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-2xl font-bold text-gray-800 mb-3 shadow-lg"
+              >
+                2
+              </motion.div>
               <p className="font-semibold text-lg mb-1" dir="auto">{stats.podium[1].name}</p>
               <p className="text-[#CDB58B] font-bold" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
-              <div className="w-24 h-24 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-3" />
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: 96 }}
+                transition={{ delay: 0.8, duration: 0.5 }}
+                className="w-24 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-3"
+              />
             </motion.div>
           )}
 
-          <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="flex flex-col items-center -mb-4">
-            <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }} className="w-28 h-28 rounded-full bg-gradient-to-br from-[#CDB58B] via-[#e8d5a8] to-[#a89160] flex items-center justify-center text-4xl font-bold text-white mb-3 shadow-2xl shadow-[#CDB58B]/40">
+          <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, type: "spring", bounce: 0.4 }} className="flex flex-col items-center -mb-4">
+            <motion.div
+              animate={{ scale: [1, 1.08, 1], rotate: [0, 2, -2, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-28 h-28 rounded-full bg-gradient-to-br from-[#CDB58B] via-[#e8d5a8] to-[#a89160] flex items-center justify-center text-4xl font-bold text-white mb-3 shadow-2xl shadow-[#CDB58B]/40"
+            >
               1
             </motion.div>
             <p className="font-bold text-2xl mb-1" dir="auto">{stats.podium[0].name}</p>
-            <p className="text-[#CDB58B] font-bold text-xl" dir="ltr">{stats.podium[0].score.toLocaleString()}</p>
-            <div className="w-28 h-32 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-3" />
+            <motion.p
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.7, type: "spring" }}
+              className="text-[#CDB58B] font-bold text-xl"
+              dir="ltr"
+            >
+              {stats.podium[0].score.toLocaleString()}
+            </motion.p>
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: 128 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="w-28 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-3"
+            />
           </motion.div>
 
           {stats.podium.length > 2 && (
-            <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.9 }} className="flex flex-col items-center">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg">3</div>
+            <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 1.1, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
+              <motion.div
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
+                className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg"
+              >
+                3
+              </motion.div>
               <p className="font-semibold text-lg mb-1" dir="auto">{stats.podium[2].name}</p>
               <p className="text-[#CDB58B] font-bold" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
-              <div className="w-24 h-16 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-3" />
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: 64 }}
+                transition={{ delay: 1.1, duration: 0.4 }}
+                className="w-24 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-3"
+              />
             </motion.div>
           )}
         </div>
@@ -482,27 +722,40 @@ function EndScreen({ stats }: { stats: FinalStats }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl mb-8">
         {stats.fastestCorrect && (
-          <StatCard title="أسرع إجابة صحيحة" value={`${(stats.fastestCorrect.timeMs / 1000).toFixed(1)} ثانية`} subtitle={stats.fastestCorrect.playerName} />
+          <StatCard title="أسرع إجابة صحيحة" value={`${(stats.fastestCorrect.timeMs / 1000).toFixed(1)} ثانية`} subtitle={stats.fastestCorrect.playerName} delay={0.3} />
         )}
         {stats.bestStreak && (
-          <StatCard title="أفضل سلسلة" value={`${stats.bestStreak.streakLength} متتالية`} subtitle={stats.bestStreak.playerName} />
+          <StatCard title="أفضل سلسلة" value={`${stats.bestStreak.streakLength} متتالية`} subtitle={stats.bestStreak.playerName} delay={0.4} />
         )}
         {stats.hardestQuestion && (
-          <StatCard title="أصعب سؤال" value={`${stats.hardestQuestion.correctPercent}% صحيح`} subtitle={`سؤال ${stats.hardestQuestion.questionIndex + 1}`} />
+          <StatCard title="أصعب سؤال" value={`${stats.hardestQuestion.correctPercent}% صحيح`} subtitle={`سؤال ${stats.hardestQuestion.questionIndex + 1}`} delay={0.5} />
         )}
-        <StatCard title="متوسط وقت الإجابة" value={`${(stats.avgResponseTime / 1000).toFixed(1)} ثانية`} subtitle="جميع اللاعبين" />
-        <StatCard title="نسبة المشاركة" value={`${stats.participationRate}%`} subtitle={`${stats.totalPlayers} لاعب`} />
-        <StatCard title="عدد الأسئلة" value={`${stats.totalQuestions}`} subtitle="سؤال تم لعبه" />
+        <StatCard title="متوسط وقت الإجابة" value={`${(stats.avgResponseTime / 1000).toFixed(1)} ثانية`} subtitle="جميع اللاعبين" delay={0.6} />
+        <StatCard title="نسبة المشاركة" value={`${stats.participationRate}%`} subtitle={`${stats.totalPlayers} لاعب`} delay={0.7} />
+        <StatCard title="عدد الأسئلة" value={`${stats.totalQuestions}`} subtitle="سؤال تم لعبه" delay={0.8} />
       </div>
     </motion.div>
   );
 }
 
-function StatCard({ title, value, subtitle }: { title: string; value: string; subtitle: string }) {
+function StatCard({ title, value, subtitle, delay = 0 }: { title: string; value: string; subtitle: string; delay?: number }) {
   return (
-    <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-card/60 rounded-xl p-5 border border-border/30 text-center">
+    <motion.div
+      initial={{ y: 30, opacity: 0, scale: 0.9 }}
+      animate={{ y: 0, opacity: 1, scale: 1 }}
+      transition={{ delay, type: "spring", bounce: 0.3 }}
+      whileHover={{ scale: 1.03 }}
+      className="bg-card/60 rounded-xl p-5 border border-border/30 text-center"
+    >
       <p className="text-sm text-muted-foreground mb-2">{title}</p>
-      <p className="text-2xl font-bold text-[#CDB58B]">{value}</p>
+      <motion.p
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: delay + 0.2, type: "spring", bounce: 0.5 }}
+        className="text-2xl font-bold text-[#CDB58B]"
+      >
+        {value}
+      </motion.p>
       <p className="text-sm text-muted-foreground mt-1" dir="auto">{subtitle}</p>
     </motion.div>
   );

@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { getSocket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import type { Question, GamePhase } from "@shared/schema";
 import { Play, SkipForward, Eye, Trophy, Square, Pause, PlayCircle, RefreshCw, UserMinus, Users } from "lucide-react";
@@ -204,25 +204,25 @@ export default function HostScreen() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-card rounded-xl p-4 border border-border/30 text-center">
+          <motion.div layout className="bg-card rounded-xl p-4 border border-border/30 text-center">
             <Users className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-            <p className="text-2xl font-bold text-[#CDB58B]" data-testid="text-host-player-count">{playerCount}</p>
+            <motion.p key={playerCount} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-2xl font-bold text-[#CDB58B]" data-testid="text-host-player-count">{playerCount}</motion.p>
             <p className="text-xs text-muted-foreground">لاعبين</p>
-          </div>
-          <div className="bg-card rounded-xl p-4 border border-border/30 text-center">
-            <p className="text-2xl font-bold text-[#CDB58B]" dir="ltr">{currentQ >= 0 ? `${currentQ + 1}/${totalQ}` : "-"}</p>
+          </motion.div>
+          <motion.div layout className="bg-card rounded-xl p-4 border border-border/30 text-center">
+            <motion.p key={currentQ} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-2xl font-bold text-[#CDB58B]" dir="ltr">{currentQ >= 0 ? `${currentQ + 1}/${totalQ}` : "-"}</motion.p>
             <p className="text-xs text-muted-foreground">السؤال</p>
-          </div>
+          </motion.div>
         </div>
 
         {phase === "QUESTION" && (
-          <div className="bg-card rounded-xl p-4 border border-border/30 mb-6">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-xl p-4 border border-border/30 mb-6">
             <p className="text-sm text-muted-foreground mb-1">الإجابات المستلمة</p>
-            <p className="text-xl font-bold text-[#CDB58B]" dir="ltr">{answeredCount} / {playerCount}</p>
+            <motion.p key={answeredCount} initial={{ scale: 1.2 }} animate={{ scale: 1 }} className="text-xl font-bold text-[#CDB58B]" dir="ltr">{answeredCount} / {playerCount}</motion.p>
             <div className="h-2 bg-muted rounded-full mt-2 overflow-hidden">
-              <div className="h-full bg-[#CDB58B] rounded-full transition-all" style={{ width: `${playerCount > 0 ? (answeredCount / playerCount) * 100 : 0}%` }} />
+              <motion.div className="h-full bg-[#CDB58B] rounded-full" animate={{ width: `${playerCount > 0 ? (answeredCount / playerCount) * 100 : 0}%` }} transition={{ type: "spring", bounce: 0.3 }} />
             </div>
-          </div>
+          </motion.div>
         )}
 
         <div className="space-y-3 mb-8">

@@ -59,6 +59,13 @@ LOBBY -> QUESTION -> REVEAL -> LEADERBOARD -> (repeat) -> END
 - `client/src/pages/AdminScreen.tsx` - Question CRUD + CSV import
 - `client/src/lib/socket.ts` - Socket.io client singleton
 
+### Animations
+- Framer Motion: spring/bounce entrance animations on all screens, countdown overlay (3-2-1) before questions, staggered list entries, bouncy feedback icons, whileTap on answer buttons
+- CSS: gold-shimmer (animated gradient text), float-anim, pulse-glow utility classes
+- canvas-confetti: fires on correct answer reveal (display) and correct feedback (player), continuous confetti on game end
+- Timer pulse: countdown number and timer text pulse/scale when ≤5 seconds
+- Haptic: navigator.vibrate on answer selection (mobile)
+
 ### Dependencies Added
 - socket.io, socket.io-client
 - qrcode.react
