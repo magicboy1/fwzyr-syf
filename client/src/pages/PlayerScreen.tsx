@@ -24,7 +24,9 @@ export default function PlayerScreen() {
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const feedbackRef = useRef<PlayerFeedback | null>(null);
+  const phaseRef = useRef(phase);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  phaseRef.current = phase;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -107,7 +109,7 @@ export default function PlayerScreen() {
     socket.on("game:questionEnd", () => {
       if (timerRef.current) clearInterval(timerRef.current);
       setTimeLeft(0);
-      if (phase === "QUESTION") setPhase("ANSWERED");
+      if (phaseRef.current === "QUESTION") setPhase("ANSWERED");
     });
 
     socket.on("game:reveal", () => {
@@ -175,7 +177,7 @@ export default function PlayerScreen() {
       socket.off("game:restarted");
       socket.off("game:doublePoints");
     };
-  }, [sessionId, phase]);
+  }, [sessionId]);
 
   const handleJoin = () => {
     if (!name.trim()) {

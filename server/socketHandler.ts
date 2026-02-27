@@ -240,7 +240,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           const session = getSession(sessionId);
           const reveal = getReveal(sessionId);
           if (reveal && session) {
-            const isLastQuestion = session.currentQuestionIndex >= session.questionIds.length - 1;
+            const isLastQuestion = session.currentQuestionIndex >= session.questions.length - 1;
             io.to(`session:${sessionId}`).emit("game:reveal", { reveal, isLastQuestion });
           }
         }, 1500);
@@ -291,7 +291,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         return;
       }
 
-      const isLastQuestion = session.currentQuestionIndex >= session.questionIds.length - 1;
+      const isLastQuestion = session.currentQuestionIndex >= session.questions.length - 1;
       io.to(`session:${data.sessionId}`).emit("game:reveal", { reveal, isLastQuestion });
       callback?.({ success: true, isLastQuestion });
     });
@@ -304,7 +304,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       }
 
       const leaderboard = showLeaderboard(data.sessionId);
-      const isLastQuestion = session.currentQuestionIndex >= session.questionIds.length - 1;
+      const isLastQuestion = session.currentQuestionIndex >= session.questions.length - 1;
       io.to(`session:${data.sessionId}`).emit("game:leaderboard", { leaderboard, isLastQuestion });
       callback?.({ success: true, isLastQuestion });
     });
