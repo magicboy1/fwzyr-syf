@@ -70,6 +70,7 @@ export interface LeaderboardEntry {
 export interface QuestionReveal {
   questionIndex: number;
   correct: "A" | "B" | "C" | "D";
+  options: string[];
   distribution: Record<string, number>;
   percentages: Record<string, number>;
   topFastest: { name: string; timeMs: number }[];

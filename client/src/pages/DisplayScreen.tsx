@@ -340,21 +340,24 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-6 mb-10" dir="ltr">
-        {OPTION_LABELS.map((label) => {
+      <div className="grid grid-cols-2 gap-6 mb-10">
+        {OPTION_LABELS.map((label, i) => {
           const isCorrect = label === reveal.correct;
+          const optionText = reveal.options?.[i] || label;
           return (
             <motion.div
               key={label}
-              initial={{ scale: 0.9 }}
-              animate={{ scale: isCorrect ? 1.05 : 1 }}
-              className={`h-24 bg-gradient-to-br ${OPTION_COLORS[label]} rounded-2xl flex items-center justify-between px-8 relative ${isCorrect ? "ring-4 ring-green-400 shadow-lg shadow-green-400/20" : "opacity-50"}`}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: isCorrect ? 1.05 : 1, opacity: 1 }}
+              transition={{ delay: i * 0.1 }}
+              className={`h-24 rounded-2xl flex items-center gap-4 px-6 relative border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-40"}`}
               data-testid={`reveal-option-${label}`}
             >
-              <span className="text-3xl font-bold text-white">{label}</span>
-              <span className="text-2xl font-bold text-white/90">{reveal.percentages[label]}%</span>
+              <span className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${isCorrect ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}>{label}</span>
+              <span className={`text-xl font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{optionText}</span>
+              <span className="text-lg font-bold tabular-nums text-muted-foreground" dir="ltr">{reveal.percentages[label]}%</span>
               {isCorrect && (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-3 -right-3 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-3 -left-3 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
                   <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                 </motion.div>
               )}

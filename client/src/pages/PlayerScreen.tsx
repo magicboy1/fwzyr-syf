@@ -275,7 +275,14 @@ export default function PlayerScreen() {
             </div>
 
             <div className="mb-4 h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-[#CDB58B] rounded-full transition-all duration-100" style={{ width: `${question.timeLimit > 0 ? (timeLeft / question.timeLimit) * 100 : 0}%` }} />
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${question.timeLimit > 0 ? (timeLeft / question.timeLimit) * 100 : 0}%`,
+                  background: (timeLeft / question.timeLimit) > 0.3 ? "#CDB58B" : (timeLeft / question.timeLimit) > 0.1 ? "#d4a054" : "#c44",
+                  transition: "width 0.3s linear",
+                }}
+              />
             </div>
 
             <p className="text-lg font-semibold mb-6 text-center" dir="auto" data-testid="text-player-question">{question.text}</p>

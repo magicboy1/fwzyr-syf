@@ -363,6 +363,7 @@ export function getReveal(sessionId: string): QuestionReveal | null {
   return {
     questionIndex: qi,
     correct: q.correct,
+    options: q.options,
     distribution: dist,
     percentages: pct,
     topFastest: correctAnswers,

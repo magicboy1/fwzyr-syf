@@ -235,6 +235,13 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       const timer = setTimeout(() => {
         endQuestion(sessionId);
         io.to(`session:${sessionId}`).emit("game:questionEnd");
+
+        setTimeout(() => {
+          const reveal = getReveal(sessionId);
+          if (reveal) {
+            io.to(`session:${sessionId}`).emit("game:reveal", { reveal });
+          }
+        }, 1500);
       }, (question.timeLimit + 1) * 1000);
       timers.set(sessionId, timer);
     }
