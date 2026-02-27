@@ -219,6 +219,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       io.to(`display:${sessionId}`).emit("game:questionStart", {
         question,
         serverTime: Date.now(),
+        totalPlayers: getPlayerCount(sessionId),
       });
       io.to(`host:${sessionId}`).emit("game:questionStart", {
         question: { ...question, options: session.questions[session.currentQuestionIndex].options, correct: session.questions[session.currentQuestionIndex].correct },
@@ -262,10 +263,12 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         const answeredCount = session.answers.filter(
           (a) => a.questionIndex === session.currentQuestionIndex
         ).length;
-        io.to(`host:${data.sessionId}`).emit("game:answerUpdate", {
+        const updateData = {
           answeredCount,
           totalPlayers: getPlayerCount(data.sessionId),
-        });
+        };
+        io.to(`host:${data.sessionId}`).emit("game:answerUpdate", updateData);
+        io.to(`display:${data.sessionId}`).emit("game:answerUpdate", updateData);
 
         if (session.streakAlerts.length > 0) {
           const latestAlert = session.streakAlerts[session.streakAlerts.length - 1];

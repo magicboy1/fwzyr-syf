@@ -30,6 +30,8 @@ export default function DisplayScreen() {
   const [streakAlert, setStreakAlert] = useState<{ playerName: string; streak: number } | null>(null);
   const [showDoublePoints, setShowDoublePoints] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [answeredCount, setAnsweredCount] = useState(0);
+  const [totalPlayers, setTotalPlayers] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -68,6 +70,11 @@ export default function DisplayScreen() {
       setTimeout(() => setShowDoublePoints(false), 3000);
     });
 
+    socket.on("game:answerUpdate", (data) => {
+      setAnsweredCount(data.answeredCount);
+      setTotalPlayers(data.totalPlayers);
+    });
+
     socket.on("game:questionStart", (data) => {
       setQuestion(data.question);
       setPhase("QUESTION");
@@ -75,6 +82,8 @@ export default function DisplayScreen() {
       setTimeLeft(data.question.timeLimit);
       setPaused(false);
       setStreakAlert(null);
+      setAnsweredCount(0);
+      setTotalPlayers(data.totalPlayers || 0);
 
       if (timerRef.current) clearInterval(timerRef.current);
       const start = Date.now();
@@ -157,6 +166,7 @@ export default function DisplayScreen() {
       socket.off("game:playerJoined");
       socket.off("game:playerLeft");
       socket.off("game:doublePoints");
+      socket.off("game:answerUpdate");
       socket.off("game:questionStart");
       socket.off("game:questionEnd");
       socket.off("game:reveal");
@@ -230,7 +240,7 @@ export default function DisplayScreen() {
 
       {phase === "LOBBY" && <LobbyScreen sessionId={sessionId} joinUrl={joinUrl} playerCount={playerCount} players={players} />}
       {phase === "QUESTION" && question && (
-        <QuestionScreen question={question} timeLeft={timeLeft} timerPercent={timerPercent} paused={paused} />
+        <QuestionScreen question={question} timeLeft={timeLeft} timerPercent={timerPercent} paused={paused} answeredCount={answeredCount} totalPlayers={totalPlayers} />
       )}
       {phase === "REVEAL" && reveal && <RevealScreen reveal={reveal} question={question} />}
       {phase === "LEADERBOARD" && <LeaderboardScreen leaderboard={leaderboard} />}
@@ -280,7 +290,7 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, players }: { sessionId: 
   );
 }
 
-function QuestionScreen({ question, timeLeft, timerPercent, paused }: { question: QuestionForBigScreen; timeLeft: number; timerPercent: number; paused: boolean }) {
+function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCount, totalPlayers }: { question: QuestionForBigScreen; timeLeft: number; timerPercent: number; paused: boolean; answeredCount: number; totalPlayers: number }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="question-screen">
       <div className="flex items-center justify-between mb-6 gap-4">
@@ -292,7 +302,10 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused }: { question
             x2 نقاط مضاعفة
           </span>
         )}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
+          <span className="text-muted-foreground text-lg" data-testid="text-answered-count" dir="ltr">
+            {answeredCount}/{totalPlayers}
+          </span>
           {paused && <span className="text-[#CDB58B] font-semibold">متوقف</span>}
           <span className="text-3xl font-bold text-[#CDB58B] tabular-nums" data-testid="text-timer">
             {Math.ceil(timeLeft)}
