@@ -390,10 +390,20 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       }
 
       if (restartGame(data.sessionId)) {
-        io.to(`session:${data.sessionId}`).emit("game:restarted", {
-          phase: "LOBBY",
-          playerCount: getPlayerCount(data.sessionId),
-          players: getPlayerList(data.sessionId),
+        io.to(`session:${data.sessionId}`).emit("game:restarted");
+
+        const room = io.sockets.adapter.rooms.get(`session:${data.sessionId}`);
+        if (room) {
+          for (const socketId of Array.from(room)) {
+            const s = io.sockets.sockets.get(socketId);
+            if (s) s.leave(`session:${data.sessionId}`);
+          }
+        }
+
+        io.to(`display:${data.sessionId}`).emit("game:restarted");
+        io.to(`host:${data.sessionId}`).emit("game:hostRestarted", {
+          playerCount: 0,
+          players: [],
         });
         callback?.({ success: true });
       } else {

@@ -503,15 +503,7 @@ export function restartGame(sessionId: string): boolean {
     session.doublePointsIndex = Math.floor(Math.random() * session.questions.length);
   }
 
-  for (const player of Object.values(session.players)) {
-    player.score = 0;
-    player.streak = 0;
-    player.bestStreak = 0;
-    player.answeredCount = 0;
-    player.correctCount = 0;
-    player.totalResponseTime = 0;
-    player.fastestCorrectTime = null;
-  }
+  session.players = {};
 
   return true;
 }

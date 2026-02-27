@@ -94,12 +94,13 @@ export default function HostScreen() {
     socket.on("game:end", () => setPhase("END"));
     socket.on("game:paused", () => setPaused(true));
     socket.on("game:resumed", () => setPaused(false));
-    socket.on("game:restarted", (data) => {
+    socket.on("game:hostRestarted", (data) => {
       setPhase("LOBBY");
       setCurrentQ(-1);
       setPlayerCount(data.playerCount);
       setPlayers(data.players);
       setPaused(false);
+      setIsLastQuestion(false);
     });
 
     return () => {
@@ -112,7 +113,7 @@ export default function HostScreen() {
       socket.off("game:end");
       socket.off("game:paused");
       socket.off("game:resumed");
-      socket.off("game:restarted");
+      socket.off("game:hostRestarted");
     };
   }, [connected, totalQ]);
 

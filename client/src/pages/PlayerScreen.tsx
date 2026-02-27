@@ -146,13 +146,18 @@ export default function PlayerScreen() {
     });
 
     socket.on("game:restarted", () => {
-      setPhase("WAITING");
+      setPhase("NAME");
       setScore(0);
       setGameStarted(false);
       setQuestion(null);
       setFeedback(null);
       feedbackRef.current = null;
       setSelectedAnswer(null);
+      setPlayerId("");
+      setPlayerName("");
+      setName("");
+      localStorage.removeItem("fawazeer_playerId");
+      localStorage.removeItem("fawazeer_sessionId");
     });
 
     socket.on("game:doublePoints", () => {});

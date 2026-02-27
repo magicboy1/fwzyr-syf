@@ -142,10 +142,10 @@ export default function DisplayScreen() {
       }, 50);
     });
 
-    socket.on("game:restarted", (data) => {
+    socket.on("game:restarted", () => {
       setPhase("LOBBY");
-      setPlayerCount(data.playerCount);
-      setPlayers(data.players);
+      setPlayerCount(0);
+      setPlayers([]);
       setQuestion(null);
       setReveal(null);
       setLeaderboard([]);
