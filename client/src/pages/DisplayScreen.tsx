@@ -315,27 +315,12 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused }: { question
         <motion.h2
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-4xl lg:text-5xl font-bold text-center leading-relaxed max-w-4xl mb-16"
+          className="text-4xl lg:text-6xl font-bold text-center leading-relaxed max-w-4xl"
           dir="auto"
           data-testid="text-question"
         >
           {question.text}
         </motion.h2>
-
-        <div className="grid grid-cols-2 gap-6 w-full max-w-3xl" dir="ltr">
-          {OPTION_LABELS.map((label, i) => (
-            <motion.div
-              key={label}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: i * 0.1 }}
-              className={`h-28 bg-gradient-to-br ${OPTION_COLORS[label]} rounded-2xl flex items-center justify-center`}
-              data-testid={`option-shape-${label}`}
-            >
-              <span className="text-4xl font-bold text-white/90">{label}</span>
-            </motion.div>
-          ))}
-        </div>
       </div>
     </motion.div>
   );

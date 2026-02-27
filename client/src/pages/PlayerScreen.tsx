@@ -7,12 +7,6 @@ import { Input } from "@/components/ui/input";
 import type { QuestionForPlayer, PlayerFeedback } from "@shared/schema";
 import logoUrl from "@assets/logo_1772218489356.png";
 
-const OPTION_COLORS: Record<string, string> = {
-  A: "from-red-500 to-red-600 active:from-red-600 active:to-red-700",
-  B: "from-blue-500 to-blue-600 active:from-blue-600 active:to-blue-700",
-  C: "from-emerald-500 to-emerald-600 active:from-emerald-600 active:to-emerald-700",
-  D: "from-amber-500 to-amber-600 active:from-amber-600 active:to-amber-700",
-};
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
 export default function PlayerScreen() {
@@ -29,6 +23,7 @@ export default function PlayerScreen() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const feedbackRef = useRef<PlayerFeedback | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -96,6 +91,7 @@ export default function PlayerScreen() {
       setPhase("QUESTION");
       setSelectedAnswer(null);
       setFeedback(null);
+      feedbackRef.current = null;
       setTimeLeft(data.question.timeLimit);
 
       if (timerRef.current) clearInterval(timerRef.current);
@@ -114,7 +110,11 @@ export default function PlayerScreen() {
       if (phase === "QUESTION") setPhase("ANSWERED");
     });
 
-    socket.on("game:reveal", () => {});
+    socket.on("game:reveal", () => {
+      if (feedbackRef.current) {
+        setPhase("FEEDBACK");
+      }
+    });
 
     socket.on("game:leaderboard", () => {
       setPhase("WAITING");
@@ -151,6 +151,7 @@ export default function PlayerScreen() {
       setGameStarted(false);
       setQuestion(null);
       setFeedback(null);
+      feedbackRef.current = null;
       setSelectedAnswer(null);
     });
 
@@ -198,12 +199,11 @@ export default function PlayerScreen() {
     const socket = getSocket();
     socket.emit("player:answer", { sessionId, playerId, answer }, (res: any) => {
       if (res.success) {
+        feedbackRef.current = res.feedback;
         setFeedback(res.feedback);
         setScore(res.feedback.totalScore);
-        setPhase("FEEDBACK");
-      } else {
-        setPhase("ANSWERED");
       }
+      setPhase("ANSWERED");
     });
   };
 
@@ -275,21 +275,21 @@ export default function PlayerScreen() {
 
             <p className="text-lg font-semibold mb-6 text-center" dir="auto" data-testid="text-player-question">{question.text}</p>
 
-            <div className="flex-1 grid grid-cols-1 gap-3" dir="ltr">
+            <div className="flex-1 grid grid-cols-1 gap-3">
               {OPTION_LABELS.map((label, i) => (
                 <motion.button
                   key={label}
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => handleAnswer(label)}
                   disabled={!!selectedAnswer}
-                  className={`w-full py-5 px-6 rounded-xl bg-gradient-to-r ${OPTION_COLORS[label]} text-white font-bold text-lg text-right flex items-center gap-4 transition-transform active:scale-[0.97] disabled:opacity-50`}
+                  className={`w-full py-5 px-5 rounded-xl border text-right flex items-center gap-4 transition-all active:scale-[0.97] ${selectedAnswer === label ? "bg-[#CDB58B]/20 border-[#CDB58B]/50 text-foreground" : selectedAnswer ? "bg-card/40 border-border/20 text-muted-foreground opacity-50" : "bg-card border-border/30 text-foreground"}`}
                   dir="auto"
                   data-testid={`button-answer-${label}`}
                 >
-                  <span className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold shrink-0">{label}</span>
-                  <span className="flex-1">{question.options[i]}</span>
+                  <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${selectedAnswer === label ? "bg-[#CDB58B] text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{label}</span>
+                  <span className="flex-1 font-medium">{question.options[i]}</span>
                 </motion.button>
               ))}
             </div>
