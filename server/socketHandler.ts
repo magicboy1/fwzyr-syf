@@ -62,7 +62,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("host:reconnect", (data: { sessionId: string; hostKey: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Invalid session or host key" });
+        callback?.({ success: false, error: "جلسة غير صالحة" });
         return;
       }
       currentSessionId = session.id;
@@ -85,7 +85,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("display:join", (data: { pin: string }, callback) => {
       const session = getSessionByPin(data.pin);
       if (!session) {
-        callback?.({ success: false, error: "Session not found" });
+        callback?.({ success: false, error: "الجلسة غير موجودة" });
         return;
       }
       currentSessionId = session.id;
@@ -103,17 +103,17 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("player:join", (data: { pin: string; name: string }, callback) => {
       const session = getSessionByPin(data.pin);
       if (!session) {
-        callback?.({ success: false, error: "Game not found. Check the PIN." });
+        callback?.({ success: false, error: "اللعبة غير موجودة. تأكد من الرمز." });
         return;
       }
       if (session.phase !== "LOBBY") {
-        callback?.({ success: false, error: "Game has already started." });
+        callback?.({ success: false, error: "اللعبة بدأت بالفعل." });
         return;
       }
 
       const player = addPlayer(session.id, data.name);
       if (!player) {
-        callback?.({ success: false, error: "Could not join. Try a different name." });
+        callback?.({ success: false, error: "تعذر الانضمام. جرب اسم مختلف." });
         return;
       }
 
@@ -140,7 +140,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("player:reconnect", (data: { sessionId: string; playerId: string }, callback) => {
       const player = reconnectPlayer(data.sessionId, data.playerId);
       if (!player) {
-        callback?.({ success: false, error: "Could not reconnect" });
+        callback?.({ success: false, error: "تعذر إعادة الاتصال" });
         return;
       }
 
@@ -175,11 +175,11 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("host:start", (data: { sessionId: string; hostKey: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Unauthorized" });
+        callback?.({ success: false, error: "غير مصرح" });
         return;
       }
       if (!startGame(data.sessionId)) {
-        callback?.({ success: false, error: "Cannot start game" });
+        callback?.({ success: false, error: "لا يمكن بدء اللعبة" });
         return;
       }
       callback?.({ success: true });
@@ -189,7 +189,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("host:next", (data: { sessionId: string; hostKey: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Unauthorized" });
+        callback?.({ success: false, error: "غير مصرح" });
         return;
       }
 
@@ -245,7 +245,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("player:answer", (data: { sessionId: string; playerId: string; answer: "A" | "B" | "C" | "D" }, callback) => {
       const feedback = submitAnswer(data.sessionId, data.playerId, data.answer);
       if (!feedback) {
-        callback?.({ success: false, error: "Could not submit answer" });
+        callback?.({ success: false, error: "تعذر تسجيل الإجابة" });
         return;
       }
 
@@ -271,7 +271,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("host:reveal", (data: { sessionId: string; hostKey: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Unauthorized" });
+        callback?.({ success: false, error: "غير مصرح" });
         return;
       }
 
@@ -281,7 +281,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       endQuestion(data.sessionId);
       const reveal = getReveal(data.sessionId);
       if (!reveal) {
-        callback?.({ success: false, error: "No question to reveal" });
+        callback?.({ success: false, error: "لا يوجد سؤال للكشف" });
         return;
       }
 
@@ -292,7 +292,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("host:leaderboard", (data: { sessionId: string; hostKey: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Unauthorized" });
+        callback?.({ success: false, error: "غير مصرح" });
         return;
       }
 
@@ -304,7 +304,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("host:end", (data: { sessionId: string; hostKey: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Unauthorized" });
+        callback?.({ success: false, error: "غير مصرح" });
         return;
       }
 
@@ -319,7 +319,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     socket.on("host:pause", (data: { sessionId: string; hostKey: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Unauthorized" });
+        callback?.({ success: false, error: "غير مصرح" });
         return;
       }
 
@@ -329,14 +329,14 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         io.to(`session:${data.sessionId}`).emit("game:paused");
         callback?.({ success: true });
       } else {
-        callback?.({ success: false, error: "Cannot pause" });
+        callback?.({ success: false, error: "لا يمكن الإيقاف" });
       }
     });
 
     socket.on("host:resume", (data: { sessionId: string; hostKey: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Unauthorized" });
+        callback?.({ success: false, error: "غير مصرح" });
         return;
       }
 
@@ -360,14 +360,14 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         }
         callback?.({ success: true });
       } else {
-        callback?.({ success: false, error: "Cannot resume" });
+        callback?.({ success: false, error: "لا يمكن الاستئناف" });
       }
     });
 
     socket.on("host:kick", (data: { sessionId: string; hostKey: string; playerId: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Unauthorized" });
+        callback?.({ success: false, error: "غير مصرح" });
         return;
       }
 
@@ -380,14 +380,14 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         });
         callback?.({ success: true });
       } else {
-        callback?.({ success: false, error: "Player not found" });
+        callback?.({ success: false, error: "اللاعب غير موجود" });
       }
     });
 
     socket.on("host:restart", (data: { sessionId: string; hostKey: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session || session.hostKey !== data.hostKey) {
-        callback?.({ success: false, error: "Unauthorized" });
+        callback?.({ success: false, error: "غير مصرح" });
         return;
       }
 
@@ -399,7 +399,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         });
         callback?.({ success: true });
       } else {
-        callback?.({ success: false, error: "Cannot restart" });
+        callback?.({ success: false, error: "لا يمكن إعادة التشغيل" });
       }
     });
 

@@ -103,10 +103,7 @@ export default function PlayerScreen() {
       if (phase === "QUESTION") setPhase("ANSWERED");
     });
 
-    socket.on("game:reveal", (data) => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      const myAnswer = data.reveal.questionIndex;
-    });
+    socket.on("game:reveal", () => {});
 
     socket.on("game:leaderboard", () => {
       setPhase("WAITING");
@@ -164,7 +161,7 @@ export default function PlayerScreen() {
 
   const handleJoin = () => {
     if (!pin.trim() || !name.trim()) {
-      setError("Please enter both PIN and name");
+      setError("الرجاء إدخال الرمز والاسم");
       return;
     }
     setError("");
@@ -178,7 +175,7 @@ export default function PlayerScreen() {
         localStorage.setItem("fawazeer_sessionId", res.sessionId);
         setPhase("WAITING");
       } else {
-        setError(res.error || "Could not join");
+        setError(res.error || "تعذر الانضمام");
       }
     });
   };
@@ -200,27 +197,28 @@ export default function PlayerScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col" data-testid="player-screen">
+    <div className="min-h-screen bg-background text-foreground flex flex-col" dir="rtl" data-testid="player-screen">
       <AnimatePresence mode="wait">
         {phase === "JOIN" && (
           <motion.div key="join" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center p-6">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 bg-clip-text text-transparent mb-2">فوازير سيف</h1>
-            <p className="text-muted-foreground mb-8">Join the quiz</p>
+            <h1 className="text-3xl font-bold text-[#CDB58B] mb-2">فوازير سيف</h1>
+            <p className="text-muted-foreground mb-8">انضم للمسابقة</p>
 
             <div className="w-full max-w-sm space-y-4">
               <Input
                 type="text"
                 inputMode="numeric"
-                placeholder="Game PIN"
+                placeholder="رمز الدخول"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 className="text-center text-2xl h-14 bg-card border-border/50 tracking-widest"
                 maxLength={6}
+                dir="ltr"
                 data-testid="input-pin"
               />
               <Input
                 type="text"
-                placeholder="Your Name / اسمك"
+                placeholder="اسمك"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="text-center text-lg h-14 bg-card border-border/50"
@@ -231,7 +229,7 @@ export default function PlayerScreen() {
               />
               {error && <p className="text-red-400 text-sm text-center" data-testid="text-error">{error}</p>}
               <Button onClick={handleJoin} className="w-full h-14 text-lg font-semibold" data-testid="button-join">
-                Join / انضم
+                انضم
               </Button>
             </div>
           </motion.div>
@@ -240,11 +238,11 @@ export default function PlayerScreen() {
         {phase === "WAITING" && (
           <motion.div key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center p-6">
             <div className="text-center">
-              <p className="text-lg text-muted-foreground mb-2">Welcome</p>
-              <h2 className="text-3xl font-bold text-primary mb-4" dir="auto">{playerName}</h2>
-              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="w-16 h-16 mx-auto border-4 border-primary/30 border-t-primary rounded-full" style={{ animation: "spin 1s linear infinite" }} />
-              <p className="mt-6 text-muted-foreground">Waiting for the next question...</p>
-              <p className="mt-2 text-sm text-primary font-semibold" data-testid="text-score">Score: {score.toLocaleString()}</p>
+              <p className="text-lg text-muted-foreground mb-2">مرحباً</p>
+              <h2 className="text-3xl font-bold text-[#CDB58B] mb-4" dir="auto">{playerName}</h2>
+              <div className="w-16 h-16 mx-auto border-4 border-[#CDB58B]/30 border-t-[#CDB58B] rounded-full animate-spin" />
+              <p className="mt-6 text-muted-foreground">بانتظار السؤال التالي...</p>
+              <p className="mt-2 text-sm text-[#CDB58B] font-semibold" data-testid="text-score">النقاط: {score.toLocaleString()}</p>
             </div>
           </motion.div>
         )}
@@ -252,27 +250,27 @@ export default function PlayerScreen() {
         {phase === "QUESTION" && question && (
           <motion.div key="question" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col p-4">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-muted-foreground">Q{question.index + 1}/{question.totalQuestions}</span>
-              {question.isDoublePoints && <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full font-semibold">x2</span>}
-              <span className="text-xl font-bold text-primary tabular-nums" data-testid="text-player-timer">{Math.ceil(timeLeft)}</span>
+              <span className="text-sm text-muted-foreground">سؤال {question.index + 1}/{question.totalQuestions}</span>
+              {question.isDoublePoints && <span className="text-xs px-2 py-0.5 bg-[#CDB58B]/15 text-[#CDB58B] rounded-full font-semibold">x2</span>}
+              <span className="text-xl font-bold text-[#CDB58B] tabular-nums" data-testid="text-player-timer">{Math.ceil(timeLeft)}</span>
             </div>
 
             <div className="mb-4 h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${question.timeLimit > 0 ? (timeLeft / question.timeLimit) * 100 : 0}%` }} />
+              <div className="h-full bg-[#CDB58B] rounded-full transition-all duration-100" style={{ width: `${question.timeLimit > 0 ? (timeLeft / question.timeLimit) * 100 : 0}%` }} />
             </div>
 
             <p className="text-lg font-semibold mb-6 text-center" dir="auto" data-testid="text-player-question">{question.text}</p>
 
-            <div className="flex-1 grid grid-cols-1 gap-3">
+            <div className="flex-1 grid grid-cols-1 gap-3" dir="ltr">
               {OPTION_LABELS.map((label, i) => (
                 <motion.button
                   key={label}
-                  initial={{ x: -20, opacity: 0 }}
+                  initial={{ x: 20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => handleAnswer(label)}
                   disabled={!!selectedAnswer}
-                  className={`w-full py-5 px-6 rounded-xl bg-gradient-to-r ${OPTION_COLORS[label]} text-white font-bold text-lg text-left flex items-center gap-4 transition-transform active:scale-[0.97] disabled:opacity-50`}
+                  className={`w-full py-5 px-6 rounded-xl bg-gradient-to-r ${OPTION_COLORS[label]} text-white font-bold text-lg text-right flex items-center gap-4 transition-transform active:scale-[0.97] disabled:opacity-50`}
                   dir="auto"
                   data-testid={`button-answer-${label}`}
                 >
@@ -286,11 +284,11 @@ export default function PlayerScreen() {
 
         {phase === "ANSWERED" && (
           <motion.div key="answered" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center p-6">
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mb-4">
-              <svg className="w-10 h-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-full bg-[#CDB58B]/20 flex items-center justify-center mb-4">
+              <svg className="w-10 h-10 text-[#CDB58B]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             </motion.div>
-            <h3 className="text-xl font-semibold">Answer Received</h3>
-            <p className="text-muted-foreground mt-2">Waiting for results...</p>
+            <h3 className="text-xl font-semibold">تم استلام الإجابة</h3>
+            <p className="text-muted-foreground mt-2">بانتظار النتائج...</p>
           </motion.div>
         )}
 
@@ -309,41 +307,41 @@ export default function PlayerScreen() {
             </motion.div>
 
             <h3 className={`text-2xl font-bold mb-2 ${feedback.correct ? "text-green-400" : "text-red-400"}`}>
-              {feedback.correct ? "Correct!" : "Wrong!"}
+              {feedback.correct ? "إجابة صحيحة!" : "إجابة خاطئة!"}
             </h3>
 
             {feedback.pointsGained > 0 && (
-              <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-3xl font-bold text-primary mb-1">
+              <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-3xl font-bold text-[#CDB58B] mb-1" dir="ltr">
                 +{feedback.pointsGained.toLocaleString()}
               </motion.p>
             )}
 
             {feedback.streakBonus && (
-              <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-amber-400 font-semibold mb-2">
-                Streak Bonus! +500
+              <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-[#CDB58B] font-semibold mb-2">
+                مكافأة السلسلة! +500
               </motion.p>
             )}
 
             <div className="mt-4 space-y-2 text-center">
-              <p className="text-muted-foreground">Total Score: <span className="text-foreground font-bold">{feedback.totalScore.toLocaleString()}</span></p>
-              <p className="text-muted-foreground">Rank: <span className="text-foreground font-bold">#{feedback.rank}</span></p>
-              {feedback.streak >= 2 && <p className="text-amber-300 text-sm">Streak: {feedback.streak} correct in a row</p>}
+              <p className="text-muted-foreground">المجموع: <span className="text-foreground font-bold" dir="ltr">{feedback.totalScore.toLocaleString()}</span></p>
+              <p className="text-muted-foreground">الترتيب: <span className="text-foreground font-bold">#{feedback.rank}</span></p>
+              {feedback.streak >= 2 && <p className="text-[#CDB58B] text-sm">{feedback.streak} إجابات صحيحة متتالية</p>}
             </div>
           </motion.div>
         )}
 
         {phase === "KICKED" && (
           <motion.div key="kicked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center p-6">
-            <h3 className="text-2xl font-bold text-red-400 mb-2">Removed from game</h3>
-            <p className="text-muted-foreground">You have been removed by the host.</p>
+            <h3 className="text-2xl font-bold text-red-400 mb-2">تم إخراجك من اللعبة</h3>
+            <p className="text-muted-foreground">تم إخراجك من قبل المضيف</p>
           </motion.div>
         )}
 
         {phase === "END" && (
           <motion.div key="end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center p-6">
-            <h3 className="text-2xl font-bold bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent mb-4">Game Over!</h3>
-            <p className="text-4xl font-bold text-primary mb-2" data-testid="text-final-score">{score.toLocaleString()}</p>
-            <p className="text-muted-foreground">Final Score</p>
+            <h3 className="text-2xl font-bold text-[#CDB58B] mb-4">انتهت اللعبة!</h3>
+            <p className="text-4xl font-bold text-[#CDB58B] mb-2" dir="ltr" data-testid="text-final-score">{score.toLocaleString()}</p>
+            <p className="text-muted-foreground">مجموع النقاط</p>
             <Button
               onClick={() => {
                 localStorage.removeItem("fawazeer_playerId");
@@ -357,17 +355,11 @@ export default function PlayerScreen() {
               className="mt-8"
               data-testid="button-play-again"
             >
-              Play Again
+              العب مرة أخرى
             </Button>
           </motion.div>
         )}
       </AnimatePresence>
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }
