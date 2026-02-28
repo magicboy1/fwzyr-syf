@@ -7,7 +7,7 @@ Real-time live quiz web app (Kahoot-like) for the Annual Suhoor event. Features 
 - **Frontend**: React + TypeScript + Tailwind CSS + Framer Motion + Wouter
 - **Backend**: Express.js + Socket.io
 - **Real-time**: Socket.io for WebSocket communication
-- **Storage**: In-memory (per session)
+- **Storage**: Questions persisted to `data/questions.json`; game sessions in-memory
 - **Theme**: Background #1C1F2A, Gold #CDB58B
 - **Fonts**: IBM Plex Sans Arabic + IBM Plex Sans
 

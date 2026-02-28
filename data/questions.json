@@ -1,0 +1,122 @@
+[
+  {
+    "id": "f1640fc7-0a0f-4530-978d-70b95c3b1123",
+    "text": "ما هي عاصمة المملكة العربية السعودية؟",
+    "options": [
+      "الرياض",
+      "جدة",
+      "مكة المكرمة",
+      "المدينة المنورة"
+    ],
+    "correct": "A",
+    "category": "جغرافيا"
+  },
+  {
+    "id": "7e3de54d-7b52-4e6a-a95c-26b1727d1e4c",
+    "text": "What is the tallest building in the world?",
+    "options": [
+      "Shanghai Tower",
+      "Abraj Al-Bait",
+      "Lotte World Tower",
+      "Burj Khalifa"
+    ],
+    "correct": "D",
+    "category": "Geography"
+  },
+  {
+    "id": "6104a3dc-c1bc-4ec9-afd0-b268e9fecc69",
+    "text": "كم عدد أركان الإسلام؟",
+    "options": [
+      "ثلاثة",
+      "ستة",
+      "أربعة",
+      "خمسة"
+    ],
+    "correct": "D",
+    "category": "إسلاميات"
+  },
+  {
+    "id": "c6e82d20-449c-4f44-9272-1d5b76608f03",
+    "text": "In which year was the Kingdom of Saudi Arabia founded?",
+    "options": [
+      "1945",
+      "1932",
+      "1920",
+      "1925"
+    ],
+    "correct": "B",
+    "category": "History"
+  },
+  {
+    "id": "731435fb-a42e-429f-94e1-9921a22182a5",
+    "text": "ما هو أطول نهر في العالم؟",
+    "options": [
+      "نهر المسيسيبي",
+      "نهر اليانغتسي",
+      "نهر النيل",
+      "نهر الأمازون"
+    ],
+    "correct": "C",
+    "category": "جغرافيا"
+  },
+  {
+    "id": "76ffdca8-c2a3-45b3-a5ce-f4975a0117ac",
+    "text": "Which planet is known as the Red Planet?",
+    "options": [
+      "Mars",
+      "Venus",
+      "Jupiter",
+      "Saturn"
+    ],
+    "correct": "A",
+    "category": "Science"
+  },
+  {
+    "id": "5f63216a-4d2f-4b76-9d45-f18e285bf6f3",
+    "text": "ما هي أكبر دولة عربية من حيث المساحة؟",
+    "options": [
+      "مصر",
+      "السودان",
+      "السعودية",
+      "الجزائر"
+    ],
+    "correct": "D",
+    "category": "جغرافيا"
+  },
+  {
+    "id": "ca4608b3-3101-4c0c-86c8-da4970fff02b",
+    "text": "How many players are on a football (soccer) team?",
+    "options": [
+      "9",
+      "12",
+      "11",
+      "10"
+    ],
+    "correct": "C",
+    "category": "Sports"
+  },
+  {
+    "id": "d7c7dc82-52c4-4a7e-a8ed-19a2d97d4759",
+    "text": "من هو مؤسس شركة أبل؟",
+    "options": [
+      "مارك زوكربيرغ",
+      "ستيف جوبز",
+      "إيلون ماسك",
+      "بيل غيتس"
+    ],
+    "correct": "B",
+    "category": "تكنولوجيا"
+  },
+  {
+    "id": "2cbd436b-8322-4840-a84d-9511bdafb991",
+    "text": "What is the chemical symbol for gold?",
+    "options": [
+      "Fe",
+      "Cu",
+      "Ag",
+      "Au"
+    ],
+    "correct": "D",
+    "category": "Science"
+  }
+]
