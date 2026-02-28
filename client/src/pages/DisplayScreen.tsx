@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { getSocket } from "@/lib/socket";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import confetti from "canvas-confetti";
+import { Maximize, Minimize } from "lucide-react";
 import logoUrl from "@assets/logo_1772218489356.png";
 import type { QuestionForBigScreen, QuestionReveal, LeaderboardEntry, FinalStats } from "@shared/schema";
 
@@ -28,9 +29,24 @@ export default function DisplayScreen() {
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownNum, setCountdownNum] = useState(3);
   const [contextData, setContextData] = useState<{ context: string; index: number; totalQuestions: number } | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const prevAnsweredRef = useRef(0);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -208,6 +224,15 @@ export default function DisplayScreen() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden" dir="rtl" data-testid="display-screen">
+      <button
+        onClick={toggleFullscreen}
+        className="fixed top-4 left-4 z-[60] p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors"
+        data-testid="button-fullscreen"
+        title={isFullscreen ? "خروج من ملء الشاشة" : "ملء الشاشة"}
+      >
+        {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+      </button>
+
       <AnimatePresence mode="wait">
         {showDoublePoints && (
           <motion.div
