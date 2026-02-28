@@ -310,10 +310,6 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         io.to(`host:${data.sessionId}`).emit("game:answerUpdate", updateData);
         io.to(`display:${data.sessionId}`).emit("game:answerUpdate", updateData);
 
-        if (session.streakAlerts.length > 0) {
-          const latestAlert = session.streakAlerts[session.streakAlerts.length - 1];
-          io.to(`display:${data.sessionId}`).emit("game:streakAlert", latestAlert);
-        }
       }
     });
 

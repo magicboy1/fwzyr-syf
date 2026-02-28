@@ -77,6 +77,7 @@ export interface QuestionReveal {
   topFastest: { name: string; timeMs: number }[];
   leaderboard: LeaderboardEntry[];
   isDoublePoints: boolean;
+  streakPlayers: { playerName: string; streak: number }[];
 }
 
 export interface FinalStats {

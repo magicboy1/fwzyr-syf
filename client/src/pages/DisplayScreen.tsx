@@ -21,7 +21,6 @@ export default function DisplayScreen() {
   const [reveal, setReveal] = useState<QuestionReveal | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [stats, setStats] = useState<FinalStats | null>(null);
-  const [streakAlert, setStreakAlert] = useState<{ playerName: string; streak: number } | null>(null);
   const [showDoublePoints, setShowDoublePoints] = useState(false);
   const [paused, setPaused] = useState(false);
   const [answeredCount, setAnsweredCount] = useState(0);
@@ -152,10 +151,6 @@ export default function DisplayScreen() {
       }, 500);
     });
 
-    socket.on("game:streakAlert", (data) => {
-      setStreakAlert(data);
-      setTimeout(() => setStreakAlert(null), 3000);
-    });
 
     socket.on("game:paused", () => {
       setPaused(true);
@@ -199,7 +194,6 @@ export default function DisplayScreen() {
       socket.off("game:reveal");
       socket.off("game:leaderboard");
       socket.off("game:end");
-      socket.off("game:streakAlert");
       socket.off("game:paused");
       socket.off("game:resumed");
       socket.off("game:restarted");
@@ -269,24 +263,6 @@ export default function DisplayScreen() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {streakAlert && (
-          <motion.div
-            initial={{ opacity: 0, y: -100, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -100, scale: 0.8 }}
-            className="fixed top-8 left-1/2 -translate-x-1/2 z-40 bg-gradient-to-r from-orange-500 to-red-500 px-10 py-4 rounded-2xl shadow-2xl"
-          >
-            <motion.p
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
-              className="text-2xl font-bold text-white text-center"
-            >
-              🔥 {streakAlert.playerName} مشتعل! سلسلة {streakAlert.streak}
-            </motion.p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {phase === "CONNECTING" && (
         <div className="flex items-center justify-center min-h-screen">
@@ -547,7 +523,13 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
   );
 }
 
-function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: QuestionForBigScreen | null }) {
+function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: QuestionForBigScreen | null; }) {
+  const streakMap = new Map<string, number>();
+  if (reveal.streakPlayers) {
+    for (const s of reveal.streakPlayers) {
+      streakMap.set(s.playerName, s.streak);
+    }
+  }
   useEffect(() => {
     confetti({
       particleCount: 80,
@@ -645,10 +627,24 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
           className="bg-card/50 rounded-2xl p-6 border border-border/30"
         >
           <h3 className="text-lg font-semibold text-[#CDB58B] mb-4">أفضل ٥</h3>
-          {reveal.leaderboard.slice(0, 5).map((entry, i) => (
+          {reveal.leaderboard.slice(0, 5).map((entry, i) => {
+            const streak = streakMap.get(entry.name);
+            return (
             <motion.div key={entry.playerId} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.7 + i * 0.15, type: "spring" }} className="flex items-center gap-4 mb-3">
               <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}>{entry.rank}</span>
-              <span className="font-medium flex-1" dir="auto">{entry.name}</span>
+              <span className="font-medium flex-1 flex items-center gap-2" dir="auto">
+                {entry.name}
+                {streak && streak >= 3 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 1.2 + i * 0.1, type: "spring", bounce: 0.6 }}
+                    className="px-2 py-0.5 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-full text-xs font-bold text-orange-400"
+                  >
+                    🔥 {streak}x
+                  </motion.span>
+                )}
+              </span>
               {entry.previousRank !== null && entry.previousRank !== entry.rank && (
                 <motion.span
                   initial={{ scale: 0 }}
@@ -661,7 +657,8 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
               )}
               <span className="font-bold text-[#CDB58B] tabular-nums" dir="ltr">{entry.score.toLocaleString()}</span>
             </motion.div>
-          ))}
+            );
+          })}
         </motion.div>
       </div>
     </motion.div>

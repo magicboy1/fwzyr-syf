@@ -374,6 +374,11 @@ export function getReveal(sessionId: string): QuestionReveal | null {
 
   const lb = getLeaderboard(sessionId);
 
+  const streakPlayers = session.streakAlerts.map((a) => ({
+    playerName: a.playerName,
+    streak: a.streak,
+  }));
+
   return {
     questionIndex: qi,
     correct: q.correct,
@@ -383,6 +388,7 @@ export function getReveal(sessionId: string): QuestionReveal | null {
     topFastest: correctAnswers,
     leaderboard: lb.slice(0, 5),
     isDoublePoints: qi === session.doublePointsIndex,
+    streakPlayers,
   };
 }
 
