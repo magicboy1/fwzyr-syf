@@ -97,7 +97,6 @@ export default function DisplayScreen() {
       setTimerDuration(data.question.timeLimit);
       setTimeLeft(data.question.timeLimit);
       setPaused(false);
-      setStreakAlert(null);
       setAnsweredCount(0);
       setTotalPlayers(data.totalPlayers || 0);
       prevAnsweredRef.current = 0;
