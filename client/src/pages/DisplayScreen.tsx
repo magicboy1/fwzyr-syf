@@ -650,8 +650,8 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
           transition={{ delay: 0.5 }}
           className="bg-card/50 rounded-2xl p-6 border border-border/30"
         >
-          <h3 className="text-lg font-semibold text-[#CDB58B] mb-4">أفضل ٥</h3>
-          {reveal.leaderboard.slice(0, 5).map((entry, i) => {
+          <h3 className="text-lg font-semibold text-[#CDB58B] mb-4">أفضل ٣</h3>
+          {reveal.leaderboard.slice(0, 3).map((entry, i) => {
             const streak = streakMap.get(entry.name);
             return (
             <motion.div key={entry.playerId} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.7 + i * 0.15, type: "spring" }} className="flex items-center gap-4 mb-3">

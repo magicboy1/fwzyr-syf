@@ -18,6 +18,7 @@ export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 export interface Player {
   id: string;
   name: string;
+  phone: string;
   sessionId: string;
   score: number;
   streak: number;

@@ -98,7 +98,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       });
     });
 
-    socket.on("player:join", (data: { sessionId: string; name: string }, callback) => {
+    socket.on("player:join", (data: { sessionId: string; name: string; phone: string }, callback) => {
       const session = getSession(data.sessionId);
       if (!session) {
         callback?.({ success: false, error: "اللعبة غير موجودة." });
@@ -109,7 +109,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         return;
       }
 
-      const player = addPlayer(session.id, data.name);
+      const player = addPlayer(session.id, data.name, data.phone || "");
       if (!player) {
         callback?.({ success: false, error: "تعذر الانضمام. جرب اسم مختلف." });
         return;

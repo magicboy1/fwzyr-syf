@@ -15,6 +15,7 @@ export default function PlayerScreen() {
   const [phase, setPhase] = useState<"NAME" | "WAITING" | "QUESTION" | "ANSWERED" | "FEEDBACK" | "KICKED" | "END" | "INVALID">("NAME");
   const [sessionId, setSessionId] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [playerId, setPlayerId] = useState("");
   const [playerName, setPlayerName] = useState("");
@@ -193,13 +194,23 @@ export default function PlayerScreen() {
   }, [sessionId]);
 
   const handleJoin = () => {
-    if (!name.trim()) {
-      setError("الرجاء إدخال اسمك");
+    const trimmed = name.trim();
+    const parts = trimmed.split(/\s+/);
+    if (!trimmed) {
+      setError("الرجاء إدخال اسمك الثلاثي");
+      return;
+    }
+    if (parts.length < 3) {
+      setError("الاسم لازم يكون ثلاثي (الاسم الأول + الأب + العائلة)");
+      return;
+    }
+    if (!phone.trim()) {
+      setError("الرجاء إدخال رقم الموبايل");
       return;
     }
     setError("");
     const socket = getSocket();
-    socket.emit("player:join", { sessionId, name: name.trim() }, (res: any) => {
+    socket.emit("player:join", { sessionId, name: trimmed, phone: phone.trim() }, (res: any) => {
       if (res.success) {
         setPlayerId(res.playerId);
         setPlayerName(res.playerName);
@@ -289,7 +300,7 @@ export default function PlayerScreen() {
               transition={{ delay: 0.2 }}
               className="text-muted-foreground mb-8"
             >
-              أدخل اسمك للانضمام
+              أدخل بياناتك للانضمام
             </motion.p>
 
             <motion.div
@@ -300,15 +311,25 @@ export default function PlayerScreen() {
             >
               <Input
                 type="text"
-                placeholder="اسمك"
+                placeholder="الاسم الثلاثي"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="text-center text-lg h-14 bg-card border-border/50"
-                maxLength={30}
+                maxLength={60}
                 dir="auto"
                 data-testid="input-name"
-                onKeyDown={(e) => e.key === "Enter" && handleJoin()}
                 autoFocus
+              />
+              <Input
+                type="tel"
+                placeholder="رقم الموبايل"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="text-center text-lg h-14 bg-card border-border/50"
+                maxLength={15}
+                dir="ltr"
+                data-testid="input-phone"
+                onKeyDown={(e) => e.key === "Enter" && handleJoin()}
               />
               {error && (
                 <motion.p

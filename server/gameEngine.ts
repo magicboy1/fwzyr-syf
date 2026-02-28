@@ -55,12 +55,14 @@ export function getSession(sessionId: string): GameSession | undefined {
 }
 
 
-export function addPlayer(sessionId: string, name: string): Player | null {
+export function addPlayer(sessionId: string, name: string, phone: string): Player | null {
   const session = sessions.get(sessionId);
   if (!session || session.phase !== "LOBBY") return null;
 
-  const sanitized = name.replace(/[<>&"']/g, "").trim().slice(0, 30);
+  const sanitized = name.replace(/[<>&"']/g, "").trim().slice(0, 60);
   if (!sanitized) return null;
+
+  const sanitizedPhone = phone.replace(/[^0-9+]/g, "").trim();
 
   const existing = Object.values(session.players).find(
     (p) => p.name.toLowerCase() === sanitized.toLowerCase()
@@ -73,6 +75,7 @@ export function addPlayer(sessionId: string, name: string): Player | null {
   const player: Player = {
     id: randomUUID(),
     name: sanitized,
+    phone: sanitizedPhone,
     sessionId,
     score: 0,
     streak: 0,
@@ -386,7 +389,7 @@ export function getReveal(sessionId: string): QuestionReveal | null {
     distribution: dist,
     percentages: pct,
     topFastest: correctAnswers,
-    leaderboard: lb.slice(0, 5),
+    leaderboard: lb.slice(0, 3),
     isDoublePoints: qi === session.doublePointsIndex,
     streakPlayers,
   };
