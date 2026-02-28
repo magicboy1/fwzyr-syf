@@ -38,7 +38,7 @@ const questionBodySchema = z.object({
 
 let questionBank: Question[] = loadQuestions();
 
-const ADMIN_PASSWORD = process.env.SESSION_SECRET || "admin123";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 function hashToken(password: string): string {
   return createHash("sha256").update(password + "fawazeer-salt").digest("hex");
