@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { type Server } from "http";
 import { setupSocketIO } from "./socketHandler";
 import { sampleQuestions } from "./sampleQuestions";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import type { Question } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
@@ -38,17 +38,52 @@ const questionBodySchema = z.object({
 
 let questionBank: Question[] = loadQuestions();
 
+const ADMIN_PASSWORD = process.env.SESSION_SECRET || "admin123";
+
+function hashToken(password: string): string {
+  return createHash("sha256").update(password + "fawazeer-salt").digest("hex");
+}
+
+const adminToken = hashToken(ADMIN_PASSWORD);
+
+function requireAdmin(req: any, res: any, next: any) {
+  const token = req.headers["x-admin-token"];
+  if (token !== adminToken) {
+    res.status(401).json({ error: "غير مصرح" });
+    return;
+  }
+  next();
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   setupSocketIO(httpServer);
 
-  app.get("/api/questions", (_req, res) => {
+  app.post("/api/auth/login", (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) {
+      res.json({ success: true, token: adminToken });
+    } else {
+      res.status(401).json({ success: false, error: "كلمة المرور غير صحيحة" });
+    }
+  });
+
+  app.get("/api/auth/verify", (req, res) => {
+    const token = req.headers["x-admin-token"];
+    if (token === adminToken) {
+      res.json({ valid: true });
+    } else {
+      res.status(401).json({ valid: false });
+    }
+  });
+
+  app.get("/api/questions", requireAdmin, (_req, res) => {
     res.json(questionBank);
   });
 
-  app.post("/api/questions", (req, res) => {
+  app.post("/api/questions", requireAdmin, (req, res) => {
     const parsed = questionBodySchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || "Invalid question data" });
@@ -69,7 +104,7 @@ export async function registerRoutes(
     res.json(question);
   });
 
-  app.put("/api/questions/:id", (req, res) => {
+  app.put("/api/questions/:id", requireAdmin, (req, res) => {
     const idx = questionBank.findIndex((q) => q.id === req.params.id);
     if (idx === -1) {
       res.status(404).json({ error: "Question not found" });
@@ -94,7 +129,7 @@ export async function registerRoutes(
     res.json(questionBank[idx]);
   });
 
-  app.delete("/api/questions/:id", (req, res) => {
+  app.delete("/api/questions/:id", requireAdmin, (req, res) => {
     const idx = questionBank.findIndex((q) => q.id === req.params.id);
     if (idx === -1) {
       res.status(404).json({ error: "Question not found" });
@@ -105,7 +140,7 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  app.post("/api/questions/import", (req, res) => {
+  app.post("/api/questions/import", requireAdmin, (req, res) => {
     const { questions } = req.body;
     if (!Array.isArray(questions)) {
       res.status(400).json({ error: "Expected array of questions" });
@@ -131,7 +166,7 @@ export async function registerRoutes(
     res.json({ imported: imported.length, questions: imported });
   });
 
-  app.get("/api/questions/export", (_req, res) => {
+  app.get("/api/questions/export", requireAdmin, (_req, res) => {
     res.json(questionBank);
   });
 

@@ -9,6 +9,15 @@ import DisplayScreen from "@/pages/DisplayScreen";
 import PlayerScreen from "@/pages/PlayerScreen";
 import HostScreen from "@/pages/HostScreen";
 import AdminScreen from "@/pages/AdminScreen";
+import AdminGate from "@/components/AdminGate";
+
+function ProtectedHost() {
+  return <AdminGate><HostScreen /></AdminGate>;
+}
+
+function ProtectedAdmin() {
+  return <AdminGate><AdminScreen /></AdminGate>;
+}
 
 function Router() {
   return (
@@ -16,8 +25,8 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/display" component={DisplayScreen} />
       <Route path="/join" component={PlayerScreen} />
-      <Route path="/host" component={HostScreen} />
-      <Route path="/admin" component={AdminScreen} />
+      <Route path="/host" component={ProtectedHost} />
+      <Route path="/admin" component={ProtectedAdmin} />
       <Route component={NotFound} />
     </Switch>
   );
