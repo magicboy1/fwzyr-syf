@@ -206,7 +206,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       callback?.({ success: true });
     });
 
-    const CONTEXT_DURATION = 3000;
+    const CONTEXT_DURATION = 6000;
     const contextTimers = new Map<string, NodeJS.Timeout>();
 
     function emitNextQuestion(sessionId: string) {

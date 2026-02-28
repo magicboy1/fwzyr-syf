@@ -78,7 +78,6 @@ export default function DisplayScreen() {
     });
 
     socket.on("game:questionStart", (data) => {
-      setContextData(null);
       setQuestion(data.question);
       setTimerDuration(data.question.timeLimit);
       setTimeLeft(data.question.timeLimit);
@@ -129,6 +128,7 @@ export default function DisplayScreen() {
     socket.on("game:reveal", (data) => {
       if (timerRef.current) clearInterval(timerRef.current);
       setReveal(data.reveal);
+      setContextData(null);
       setPhase("REVEAL");
     });
 
@@ -304,7 +304,7 @@ export default function DisplayScreen() {
       {phase === "LOBBY" && <LobbyScreen sessionId={sessionId} joinUrl={joinUrl} playerCount={playerCount} players={players} />}
       {phase === "CONTEXT" && contextData && <ContextScreen context={contextData.context} index={contextData.index} totalQuestions={contextData.totalQuestions} />}
       {phase === "QUESTION" && question && (
-        <QuestionScreen question={question} timeLeft={timeLeft} timerPercent={timerPercent} paused={paused} answeredCount={answeredCount} totalPlayers={totalPlayers} />
+        <QuestionScreen question={question} timeLeft={timeLeft} timerPercent={timerPercent} paused={paused} answeredCount={answeredCount} totalPlayers={totalPlayers} contextText={contextData?.context} />
       )}
       {phase === "REVEAL" && reveal && <RevealScreen reveal={reveal} question={question} />}
       {phase === "LEADERBOARD" && <LeaderboardScreen leaderboard={leaderboard} />}
@@ -314,6 +314,19 @@ export default function DisplayScreen() {
 }
 
 function ContextScreen({ context, index, totalQuestions }: { context: string; index: number; totalQuestions: number }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const start = Date.now();
+    const duration = 6000;
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - start;
+      setProgress(Math.min(100, (elapsed / duration) * 100));
+      if (elapsed >= duration) clearInterval(interval);
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -323,23 +336,52 @@ function ContextScreen({ context, index, totalQuestions }: { context: string; in
       data-testid="context-screen"
     >
       <motion.span
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="text-muted-foreground text-lg mb-8"
+        className="text-muted-foreground text-lg mb-4"
       >
         سؤال {index + 1} من {totalQuestions}
       </motion.span>
-      <motion.p
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.2, duration: 0.6 }}
-        className="text-2xl lg:text-3xl text-muted-foreground/90 text-center leading-relaxed max-w-3xl font-medium"
-        dir="auto"
-        data-testid="text-context"
+
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="text-[#CDB58B] text-sm font-semibold tracking-wide mb-6 uppercase"
       >
-        {context}
-      </motion.p>
+        📖 اقرأ المقدمة
+      </motion.span>
+
+      <motion.div
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ delay: 0.4, duration: 0.7, type: "spring", bounce: 0.2 }}
+        className="bg-card/60 border border-[#CDB58B]/20 rounded-2xl px-10 py-8 lg:px-16 lg:py-12 max-w-4xl"
+      >
+        <p
+          className="text-3xl lg:text-5xl text-foreground text-center leading-relaxed font-bold"
+          dir="auto"
+          data-testid="text-context"
+        >
+          {context}
+        </p>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+        className="mt-10 w-64"
+      >
+        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full bg-[#CDB58B]/60 transition-all duration-100"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground text-center mt-2">السؤال قادم...</p>
+      </motion.div>
     </motion.div>
   );
 }
@@ -423,7 +465,7 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, players }: { sessionId: 
   );
 }
 
-function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCount, totalPlayers }: { question: QuestionForBigScreen; timeLeft: number; timerPercent: number; paused: boolean; answeredCount: number; totalPlayers: number }) {
+function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCount, totalPlayers, contextText }: { question: QuestionForBigScreen; timeLeft: number; timerPercent: number; paused: boolean; answeredCount: number; totalPlayers: number; contextText?: string }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="question-screen">
       <div className="flex items-center justify-between mb-6 gap-4">
@@ -478,6 +520,18 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center">
+        {contextText && (
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-base lg:text-lg text-muted-foreground/70 text-center mb-4 max-w-3xl italic"
+            dir="auto"
+            data-testid="text-context-ref"
+          >
+            📖 {contextText}
+          </motion.p>
+        )}
         <motion.h2
           initial={{ y: 40, opacity: 0, scale: 0.9 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
