@@ -78,6 +78,10 @@ export default function HostScreen() {
       setPlayers(data.players);
     });
 
+    socket.on("game:context", (data) => {
+      setCurrentQ(data.index);
+    });
+
     socket.on("game:questionStart", (data) => {
       setPhase("QUESTION");
       setCurrentQ(data.question.index);
@@ -110,6 +114,7 @@ export default function HostScreen() {
       socket.off("game:playerJoined");
       socket.off("game:playerLeft");
       socket.off("game:questionStart");
+      socket.off("game:context");
       socket.off("game:answerUpdate");
       socket.off("game:reveal");
       socket.off("game:leaderboard");

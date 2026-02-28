@@ -9,6 +9,7 @@ import {
   kickPlayer,
   startGame,
   nextQuestion,
+  startQuestionTimer,
   getQuestionForPlayer,
   submitAnswer,
   endQuestion,
@@ -205,14 +206,53 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       callback?.({ success: true });
     });
 
+    const CONTEXT_DURATION = 3000;
+    const contextTimers = new Map<string, NodeJS.Timeout>();
+
     function emitNextQuestion(sessionId: string) {
-      const question = nextQuestion(sessionId);
+      const oldCtxTimer = contextTimers.get(sessionId);
+      if (oldCtxTimer) { clearTimeout(oldCtxTimer); contextTimers.delete(sessionId); }
+
+      const session = getSession(sessionId);
+      if (!session) return;
+      const nextIdx = session.currentQuestionIndex + 1;
+      const hasContext = nextIdx < session.questions.length && !!(session.questions[nextIdx].context?.trim());
+
+      const question = nextQuestion(sessionId, hasContext);
       if (!question) {
         const stats = endGame(sessionId);
         io.to(`session:${sessionId}`).emit("game:end", { stats });
         return;
       }
 
+      if (hasContext) {
+        io.to(`display:${sessionId}`).emit("game:context", {
+          context: question.context,
+          index: question.index,
+          totalQuestions: question.totalQuestions,
+          duration: CONTEXT_DURATION,
+        });
+
+        io.to(`host:${sessionId}`).emit("game:context", {
+          context: question.context,
+          index: question.index,
+          duration: CONTEXT_DURATION,
+        });
+
+        const ctxTimeout = setTimeout(() => {
+          contextTimers.delete(sessionId);
+          const s = getSession(sessionId);
+          if (!s || s.phase !== "CONTEXT") return;
+          startQuestionTimer(sessionId);
+          emitQuestionToAll(sessionId, question);
+        }, CONTEXT_DURATION);
+        contextTimers.set(sessionId, ctxTimeout);
+      } else {
+        emitQuestionToAll(sessionId, question);
+      }
+    }
+
+    function emitQuestionToAll(sessionId: string, question: NonNullable<ReturnType<typeof nextQuestion>>) {
       const session = getSession(sessionId)!;
       const playerQuestion = getQuestionForPlayer(sessionId);
 
@@ -284,6 +324,8 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         return;
       }
 
+      const oldCtx = contextTimers.get(data.sessionId);
+      if (oldCtx) { clearTimeout(oldCtx); contextTimers.delete(data.sessionId); }
       const oldTimer = timers.get(data.sessionId);
       if (oldTimer) clearTimeout(oldTimer);
 
@@ -319,6 +361,8 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         return;
       }
 
+      const oldCtx2 = contextTimers.get(data.sessionId);
+      if (oldCtx2) { clearTimeout(oldCtx2); contextTimers.delete(data.sessionId); }
       const oldTimer = timers.get(data.sessionId);
       if (oldTimer) clearTimeout(oldTimer);
 
@@ -401,6 +445,9 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         callback?.({ success: false, error: "غير مصرح" });
         return;
       }
+
+      const oldCtx3 = contextTimers.get(data.sessionId);
+      if (oldCtx3) { clearTimeout(oldCtx3); contextTimers.delete(data.sessionId); }
 
       if (restartGame(data.sessionId)) {
         io.to(`session:${data.sessionId}`).emit("game:restarted");

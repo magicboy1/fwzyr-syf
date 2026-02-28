@@ -28,6 +28,7 @@ export default function DisplayScreen() {
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownNum, setCountdownNum] = useState(3);
+  const [contextData, setContextData] = useState<{ context: string; index: number; totalQuestions: number } | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const prevAnsweredRef = useRef(0);
@@ -71,7 +72,13 @@ export default function DisplayScreen() {
       setTotalPlayers(data.totalPlayers);
     });
 
+    socket.on("game:context", (data) => {
+      setContextData({ context: data.context, index: data.index, totalQuestions: data.totalQuestions });
+      setPhase("CONTEXT");
+    });
+
     socket.on("game:questionStart", (data) => {
+      setContextData(null);
       setQuestion(data.question);
       setTimerDuration(data.question.timeLimit);
       setTimeLeft(data.question.timeLimit);
@@ -186,6 +193,7 @@ export default function DisplayScreen() {
       socket.off("game:playerLeft");
       socket.off("game:doublePoints");
       socket.off("game:answerUpdate");
+      socket.off("game:context");
       socket.off("game:questionStart");
       socket.off("game:questionEnd");
       socket.off("game:reveal");
@@ -294,6 +302,7 @@ export default function DisplayScreen() {
       )}
 
       {phase === "LOBBY" && <LobbyScreen sessionId={sessionId} joinUrl={joinUrl} playerCount={playerCount} players={players} />}
+      {phase === "CONTEXT" && contextData && <ContextScreen context={contextData.context} index={contextData.index} totalQuestions={contextData.totalQuestions} />}
       {phase === "QUESTION" && question && (
         <QuestionScreen question={question} timeLeft={timeLeft} timerPercent={timerPercent} paused={paused} answeredCount={answeredCount} totalPlayers={totalPlayers} />
       )}
@@ -301,6 +310,37 @@ export default function DisplayScreen() {
       {phase === "LEADERBOARD" && <LeaderboardScreen leaderboard={leaderboard} />}
       {phase === "END" && stats && <EndScreen stats={stats} />}
     </div>
+  );
+}
+
+function ContextScreen({ context, index, totalQuestions }: { context: string; index: number; totalQuestions: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-16"
+      data-testid="context-screen"
+    >
+      <motion.span
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="text-muted-foreground text-lg mb-8"
+      >
+        سؤال {index + 1} من {totalQuestions}
+      </motion.span>
+      <motion.p
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2, duration: 0.6 }}
+        className="text-2xl lg:text-3xl text-muted-foreground/90 text-center leading-relaxed max-w-3xl font-medium"
+        dir="auto"
+        data-testid="text-context"
+      >
+        {context}
+      </motion.p>
+    </motion.div>
   );
 }
 

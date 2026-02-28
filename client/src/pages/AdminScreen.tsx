@@ -13,6 +13,7 @@ export default function AdminScreen() {
   const { data: questions = [], isLoading } = useQuery<Question[]>({ queryKey: ["/api/questions"] });
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [context, setContext] = useState("");
   const [text, setText] = useState("");
   const [optA, setOptA] = useState("");
   const [optB, setOptB] = useState("");
@@ -52,6 +53,7 @@ export default function AdminScreen() {
   const resetForm = () => {
     setShowForm(false);
     setEditId(null);
+    setContext("");
     setText("");
     setOptA("");
     setOptB("");
@@ -64,6 +66,7 @@ export default function AdminScreen() {
 
   const startEdit = (q: Question) => {
     setEditId(q.id);
+    setContext(q.context || "");
     setText(q.text);
     setOptA(q.options[0]);
     setOptB(q.options[1]);
@@ -78,6 +81,7 @@ export default function AdminScreen() {
   const handleSubmit = () => {
     if (!text.trim() || !optA.trim() || !optB.trim() || !optC.trim() || !optD.trim()) return;
     const data = {
+      context: context.trim() || undefined,
       text: text.trim(),
       options: [optA.trim(), optB.trim(), optC.trim(), optD.trim()],
       correct,
@@ -98,16 +102,33 @@ export default function AdminScreen() {
     reader.onload = (evt) => {
       const csv = evt.target?.result as string;
       const lines = csv.split("\n").filter((l) => l.trim());
+      if (lines.length < 2) return;
+
+      const header = lines[0].toLowerCase().split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+      const hasContext = header.includes("context") || header.includes("مقدمة");
       const questions: any[] = [];
+
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-        if (cols.length >= 6) {
-          questions.push({
-            text: cols[0],
-            options: [cols[1], cols[2], cols[3], cols[4]],
-            correct: cols[5].toUpperCase(),
-            category: cols[6] || undefined,
-          });
+        if (hasContext) {
+          if (cols.length >= 7) {
+            questions.push({
+              context: cols[0] || undefined,
+              text: cols[1],
+              options: [cols[2], cols[3], cols[4], cols[5]],
+              correct: cols[6].toUpperCase(),
+              category: cols[7] || undefined,
+            });
+          }
+        } else {
+          if (cols.length >= 6) {
+            questions.push({
+              text: cols[0],
+              options: [cols[1], cols[2], cols[3], cols[4]],
+              correct: cols[5].toUpperCase(),
+              category: cols[6] || undefined,
+            });
+          }
         }
       }
       if (questions.length > 0) {
@@ -155,7 +176,9 @@ export default function AdminScreen() {
 
         <div className="mb-4 p-4 bg-card/50 rounded-xl border border-border/30 text-sm text-muted-foreground">
           <p className="font-medium text-foreground/80 mb-1">صيغة ملف CSV</p>
-          <code className="text-xs" dir="ltr">السؤال, خيار أ, خيار ب, خيار ج, خيار د, الإجابة(A/B/C/D), التصنيف</code>
+          <code className="text-xs block mb-1" dir="ltr">text, optionA, optionB, optionC, optionD, correct(A/B/C/D), category</code>
+          <code className="text-xs block" dir="ltr">context, text, optionA, optionB, optionC, optionD, correct, category</code>
+          <p className="text-xs mt-1">عمود context اختياري - إذا وُجد في العنوان يكون العمود الأول</p>
         </div>
 
         <AnimatePresence>
@@ -163,6 +186,18 @@ export default function AdminScreen() {
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-card rounded-xl p-6 border border-border/30 mb-6 overflow-hidden">
               <h3 className="font-semibold mb-4">{editId ? "تعديل السؤال" : "سؤال جديد"}</h3>
               <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Context / مقدمة السؤال (اختياري)</label>
+                  <textarea
+                    placeholder="مقدمة تظهر على الشاشة الكبيرة قبل السؤال..."
+                    value={context}
+                    onChange={(e) => setContext(e.target.value)}
+                    className="w-full bg-muted rounded-md border border-border/50 px-3 py-2 text-sm resize-none min-h-[60px]"
+                    dir="auto"
+                    rows={2}
+                    data-testid="input-question-context"
+                  />
+                </div>
                 <Input placeholder="نص السؤال" value={text} onChange={(e) => setText(e.target.value)} className="bg-muted" dir="auto" data-testid="input-question-text" />
                 <div className="grid grid-cols-2 gap-3">
                   <Input placeholder="الخيار أ" value={optA} onChange={(e) => setOptA(e.target.value)} className="bg-muted" dir="auto" data-testid="input-option-a" />
@@ -218,6 +253,7 @@ export default function AdminScreen() {
                   <div className="flex-1">
                     <span className="text-xs text-muted-foreground ml-2">س{i + 1}</span>
                     {q.category && <span className="text-xs px-2 py-0.5 bg-[#CDB58B]/10 text-[#CDB58B] rounded-full">{q.category}</span>}
+                    {q.context && <p className="text-xs text-muted-foreground mt-1 italic" dir="auto">📋 {q.context}</p>}
                     <p className="font-medium mt-1" dir="auto" data-testid={`text-question-${q.id}`}>{q.text}</p>
                   </div>
                   <div className="flex gap-1 shrink-0">

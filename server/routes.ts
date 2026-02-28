@@ -7,6 +7,7 @@ import type { Question } from "@shared/schema";
 import { z } from "zod";
 
 const questionBodySchema = z.object({
+  context: z.string().optional(),
   text: z.string().min(1),
   options: z.tuple([z.string().min(1), z.string().min(1), z.string().min(1), z.string().min(1)]),
   correct: z.enum(["A", "B", "C", "D"]),
@@ -32,9 +33,10 @@ export async function registerRoutes(
       res.status(400).json({ error: parsed.error.issues[0]?.message || "Invalid question data" });
       return;
     }
-    const { text, options, correct, category, timeLimit } = parsed.data;
+    const { context, text, options, correct, category, timeLimit } = parsed.data;
     const question: Question = {
       id: randomUUID(),
+      context: context || undefined,
       text,
       options,
       correct,
@@ -56,12 +58,13 @@ export async function registerRoutes(
       res.status(400).json({ error: parsed.error.issues[0]?.message || "Invalid data" });
       return;
     }
-    const { text, options, correct, category, timeLimit } = parsed.data;
+    const { context, text, options, correct, category, timeLimit } = parsed.data;
     questionBank[idx] = {
       ...questionBank[idx],
       ...(text && { text }),
       ...(options && { options }),
       ...(correct && { correct }),
+      context: context !== undefined ? (context || undefined) : questionBank[idx].context,
       category: category ?? questionBank[idx].category,
       timeLimit: timeLimit ?? questionBank[idx].timeLimit,
     };
@@ -89,6 +92,7 @@ export async function registerRoutes(
       if (q.text && q.options && q.correct) {
         const question: Question = {
           id: randomUUID(),
+          context: q.context || undefined,
           text: q.text,
           options: q.options,
           correct: q.correct,

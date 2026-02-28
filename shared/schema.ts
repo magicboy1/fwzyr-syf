@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const questionSchema = z.object({
   id: z.string(),
+  context: z.string().optional(),
   text: z.string().min(1),
   options: z.tuple([z.string(), z.string(), z.string(), z.string()]),
   correct: z.enum(["A", "B", "C", "D"]),
@@ -37,7 +38,7 @@ export interface PlayerAnswer {
   correct: boolean;
 }
 
-export type GamePhase = "LOBBY" | "QUESTION" | "REVEAL" | "LEADERBOARD" | "END";
+export type GamePhase = "LOBBY" | "CONTEXT" | "QUESTION" | "REVEAL" | "LEADERBOARD" | "END";
 
 export interface GameSession {
   id: string;
@@ -93,6 +94,7 @@ export interface FinalStats {
 
 export interface QuestionForBigScreen {
   index: number;
+  context?: string;
   text: string;
   totalQuestions: number;
   timeLimit: number;
@@ -119,6 +121,7 @@ export interface PlayerFeedback {
 }
 
 export const csvQuestionSchema = z.object({
+  context: z.string().optional(),
   text: z.string().min(1),
   optionA: z.string().min(1),
   optionB: z.string().min(1),

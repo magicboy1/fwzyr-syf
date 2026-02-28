@@ -38,10 +38,11 @@ Real-time live quiz web app (Kahoot-like) for the Annual Suhoor event. Features 
 - `host:create`, `host:start`, `host:next`, `host:reveal`, `host:leaderboard`, `host:end`, `host:pause`, `host:resume`, `host:kick`, `host:restart`
 - `player:join` (uses sessionId, not PIN), `player:answer`, `player:reconnect`
 - `display:join` (uses sessionId)
-- `game:playerJoined`, `game:questionStart`, `game:questionEnd`, `game:reveal`, `game:leaderboard`, `game:end`, `game:streakAlert`, `game:doublePoints`, `game:paused`, `game:resumed`
+- `game:playerJoined`, `game:context`, `game:questionStart`, `game:questionEnd`, `game:reveal`, `game:leaderboard`, `game:end`, `game:streakAlert`, `game:doublePoints`, `game:paused`, `game:resumed`
 
 ### Game State Machine
-LOBBY -> QUESTION -> REVEAL -> LEADERBOARD -> (repeat) -> END
+LOBBY -> [CONTEXT ->] QUESTION -> REVEAL -> LEADERBOARD -> (repeat) -> END
+- CONTEXT phase: optional, shown on big screen only when question has context field; lasts 3s before timer starts
 
 ### Scoring
 - Correct: 1000 base + up to 300 speed bonus

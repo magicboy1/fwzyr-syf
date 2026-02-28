@@ -118,7 +118,7 @@ export function startGame(sessionId: string): boolean {
   return true;
 }
 
-export function nextQuestion(sessionId: string): QuestionForBigScreen | null {
+export function nextQuestion(sessionId: string, contextPhase: boolean = false): QuestionForBigScreen | null {
   const session = sessions.get(sessionId);
   if (!session) return null;
 
@@ -128,22 +128,36 @@ export function nextQuestion(sessionId: string): QuestionForBigScreen | null {
     return null;
   }
 
-  session.phase = "QUESTION";
   session.streakAlerts = [];
   const q = session.questions[session.currentQuestionIndex];
   const timeLimit = q.timeLimit || session.defaultTimeLimit;
   session.timerDuration = timeLimit;
-  session.timerStartedAt = Date.now();
   session.paused = false;
   session.pausedTimeRemaining = null;
 
+  if (contextPhase) {
+    session.phase = "CONTEXT";
+    session.timerStartedAt = null;
+  } else {
+    session.phase = "QUESTION";
+    session.timerStartedAt = Date.now();
+  }
+
   return {
     index: session.currentQuestionIndex,
+    context: q.context || undefined,
     text: q.text,
     totalQuestions: session.questions.length,
     timeLimit,
     isDoublePoints: session.currentQuestionIndex === session.doublePointsIndex,
   };
+}
+
+export function startQuestionTimer(sessionId: string): void {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  session.phase = "QUESTION";
+  session.timerStartedAt = Date.now();
 }
 
 export function getQuestionForPlayer(sessionId: string): QuestionForPlayer | null {
