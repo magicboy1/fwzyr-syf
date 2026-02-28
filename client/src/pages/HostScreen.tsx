@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import type { Question, GamePhase } from "@shared/schema";
-import { Play, SkipForward, Eye, Trophy, Square, Pause, PlayCircle, RefreshCw, UserMinus, Users } from "lucide-react";
+import { Play, SkipForward, Eye, Trophy, Square, Pause, PlayCircle, RefreshCw, UserMinus, Users, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 
 export default function HostScreen() {
   const [, navigate] = useLocation();
@@ -152,6 +153,11 @@ export default function HostScreen() {
   if (!connected) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6" dir="rtl" data-testid="host-setup">
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="absolute top-4 right-4" data-testid="button-back-home">
+            <ArrowRight className="w-4 h-4 ml-1" /> الرئيسية
+          </Button>
+        </Link>
         <h1 className="text-3xl font-bold text-[#CDB58B] mb-2">لوحة تحكم المضيف</h1>
         <p className="text-muted-foreground mb-8">إنشاء جلسة مسابقة جديدة</p>
 
@@ -190,7 +196,10 @@ export default function HostScreen() {
     <div className="min-h-screen bg-background text-foreground p-6" dir="rtl" data-testid="host-panel">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between gap-4 mb-6">
-          <div>
+          <div className="flex items-center gap-3">
+            <Link href="/">
+              <Button variant="ghost" size="icon" data-testid="button-back-home-panel"><ArrowRight className="w-5 h-5" /></Button>
+            </Link>
             <h1 className="text-xl font-bold text-[#CDB58B]">لوحة المضيف</h1>
           </div>
           <div className="text-left">
