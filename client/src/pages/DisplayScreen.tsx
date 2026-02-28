@@ -445,22 +445,6 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, players }: { sessionId: 
         </motion.div>
       </div>
 
-      {players.length > 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-10 flex flex-wrap gap-3 justify-center max-w-3xl">
-          {players.slice(-20).map((p, i) => (
-            <motion.span
-              key={p.id}
-              initial={{ opacity: 0, scale: 0, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ type: "spring", bounce: 0.5, delay: i * 0.05 }}
-              className="px-4 py-2 bg-card rounded-full border border-border/50 text-sm font-medium"
-              data-testid={`text-player-${p.id}`}
-            >
-              {p.name}
-            </motion.span>
-          ))}
-        </motion.div>
-      )}
     </motion.div>
   );
 }
