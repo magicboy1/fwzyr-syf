@@ -23,6 +23,7 @@ export default function AdminScreen() {
   const [category, setCategory] = useState("");
   const [timeLimitQ, setTimeLimitQ] = useState<number | "">("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/questions", data),
@@ -76,17 +77,18 @@ export default function AdminScreen() {
     setCategory(q.category || "");
     setTimeLimitQ(q.timeLimit || "");
     setShowForm(true);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
   };
 
   const handleSubmit = () => {
     if (!text.trim() || !optA.trim() || !optB.trim() || !optC.trim() || !optD.trim()) return;
-    const data = {
-      context: context.trim() || undefined,
+    const data: any = {
+      context: context.trim() || null,
       text: text.trim(),
       options: [optA.trim(), optB.trim(), optC.trim(), optD.trim()],
       correct,
-      category: category.trim() || undefined,
-      timeLimit: timeLimitQ ? Number(timeLimitQ) : undefined,
+      category: category.trim() || null,
+      timeLimit: timeLimitQ ? Number(timeLimitQ) : null,
     };
     if (editId) {
       updateMutation.mutate({ id: editId, data });
@@ -183,7 +185,7 @@ export default function AdminScreen() {
 
         <AnimatePresence>
           {showForm && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-card rounded-xl p-6 border border-border/30 mb-6 overflow-hidden">
+            <motion.div ref={formRef} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-card rounded-xl p-6 border border-border/30 mb-6 overflow-hidden">
               <h3 className="font-semibold mb-4">{editId ? "تعديل السؤال" : "سؤال جديد"}</h3>
               <div className="space-y-3">
                 <div>

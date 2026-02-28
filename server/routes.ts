@@ -7,12 +7,12 @@ import type { Question } from "@shared/schema";
 import { z } from "zod";
 
 const questionBodySchema = z.object({
-  context: z.string().optional(),
+  context: z.string().nullable().optional(),
   text: z.string().min(1),
   options: z.tuple([z.string().min(1), z.string().min(1), z.string().min(1), z.string().min(1)]),
   correct: z.enum(["A", "B", "C", "D"]),
-  category: z.string().optional(),
-  timeLimit: z.number().min(5).max(120).optional(),
+  category: z.string().nullable().optional(),
+  timeLimit: z.number().min(5).max(120).nullable().optional(),
 });
 
 let questionBank: Question[] = [...sampleQuestions];
@@ -65,8 +65,8 @@ export async function registerRoutes(
       ...(options && { options }),
       ...(correct && { correct }),
       context: context !== undefined ? (context || undefined) : questionBank[idx].context,
-      category: category ?? questionBank[idx].category,
-      timeLimit: timeLimit ?? questionBank[idx].timeLimit,
+      category: category !== undefined ? (category || undefined) : questionBank[idx].category,
+      timeLimit: timeLimit !== undefined ? (timeLimit || undefined) : questionBank[idx].timeLimit,
     };
     res.json(questionBank[idx]);
   });
