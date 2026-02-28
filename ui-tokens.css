@@ -1,0 +1,162 @@
+:root {
+  --button-outline: rgba(0,0,0, .10);
+  --badge-outline: rgba(0,0,0, .05);
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .08);
+
+  --background: 227 20% 14%;
+  --foreground: 40 20% 92%;
+  --border: 227 18% 22%;
+
+  --card: 227 20% 17%;
+  --card-foreground: 40 20% 92%;
+  --card-border: 227 18% 20%;
+
+  --sidebar: 227 20% 15%;
+  --sidebar-foreground: 40 20% 92%;
+  --sidebar-border: 227 18% 20%;
+  --sidebar-primary: 38 40% 67%;
+  --sidebar-primary-foreground: 227 20% 10%;
+  --sidebar-accent: 227 18% 20%;
+  --sidebar-accent-foreground: 40 20% 92%;
+  --sidebar-ring: 38 40% 67%;
+
+  --popover: 227 20% 17%;
+  --popover-foreground: 40 20% 92%;
+  --popover-border: 227 18% 22%;
+
+  --primary: 38 40% 67%;
+  --primary-foreground: 227 20% 10%;
+
+  --secondary: 227 18% 22%;
+  --secondary-foreground: 40 20% 92%;
+
+  --muted: 227 18% 20%;
+  --muted-foreground: 227 12% 55%;
+
+  --accent: 227 18% 19%;
+  --accent-foreground: 40 20% 92%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 10% 98%;
+
+  --input: 227 18% 26%;
+  --ring: 38 40% 67%;
+
+  --chart-1: 38 40% 67%;
+  --chart-2: 220 70% 55%;
+  --chart-3: 160 50% 45%;
+  --chart-4: 0 65% 55%;
+  --chart-5: 280 55% 55%;
+
+  --font-sans: 'IBM Plex Sans Arabic', 'IBM Plex Sans', 'Inter', sans-serif;
+  --font-serif: 'IBM Plex Sans Arabic', Georgia, serif;
+  --font-mono: Menlo, monospace;
+
+  --radius: .5rem;
+  --spacing: 0.25rem;
+
+  --shadow-2xs: 0px 2px 0px 0px hsl(220 15% 12% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(220 15% 12% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(220 15% 12% / 0.00), 0px 1px 2px -1px hsl(220 15% 12% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(220 15% 12% / 0.00), 0px 1px 2px -1px hsl(220 15% 12% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(220 15% 12% / 0.00), 0px 2px 4px -1px hsl(220 15% 12% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(220 15% 12% / 0.00), 0px 4px 6px -1px hsl(220 15% 12% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(220 15% 12% / 0.00), 0px 8px 10px -1px hsl(220 15% 12% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(220 15% 12% / 0.00);
+}
+
+.dark {
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
+
+  --background: 227 20% 10%;
+  --foreground: 40 20% 93%;
+  --border: 227 18% 18%;
+
+  --card: 227 20% 13%;
+  --card-foreground: 40 20% 93%;
+  --card-border: 227 18% 16%;
+
+  --sidebar: 227 20% 11%;
+  --sidebar-foreground: 40 20% 93%;
+  --sidebar-border: 227 18% 17%;
+  --sidebar-primary: 38 40% 67%;
+  --sidebar-primary-foreground: 227 20% 8%;
+  --sidebar-accent: 227 18% 17%;
+  --sidebar-accent-foreground: 40 20% 93%;
+  --sidebar-ring: 38 40% 67%;
+
+  --popover: 227 20% 13%;
+  --popover-foreground: 40 20% 93%;
+  --popover-border: 227 18% 20%;
+
+  --primary: 38 40% 67%;
+  --primary-foreground: 227 20% 8%;
+
+  --secondary: 227 18% 20%;
+  --secondary-foreground: 40 20% 93%;
+
+  --muted: 227 18% 18%;
+  --muted-foreground: 227 12% 58%;
+
+  --accent: 227 18% 16%;
+  --accent-foreground: 40 20% 93%;
+
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 5% 98%;
+
+  --input: 227 18% 22%;
+  --ring: 38 40% 67%;
+
+  --chart-1: 38 40% 67%;
+  --chart-2: 220 70% 55%;
+  --chart-3: 280 65% 70%;
+  --chart-4: 160 60% 65%;
+  --chart-5: 20 75% 65%;
+
+  --shadow-2xs: 0px 2px 0px 0px hsl(220 25% 8% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(220 25% 8% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(220 25% 8% / 0.00), 0px 1px 2px -1px hsl(220 25% 8% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(220 25% 8% / 0.00), 0px 1px 2px -1px hsl(220 25% 8% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(220 25% 8% / 0.00), 0px 2px 4px -1px hsl(220 25% 8% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(220 25% 8% / 0.00), 0px 4px 6px -1px hsl(220 25% 8% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(220 25% 8% / 0.00), 0px 8px 10px -1px hsl(220 25% 8% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(220 25% 8% / 0.00);
+}
+
+@keyframes goldShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(205, 181, 139, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(205, 181, 139, 0.4); }
+}
+
+.gold-shimmer {
+  background: linear-gradient(90deg, #CDB58B 0%, #e8d5a8 25%, #CDB58B 50%, #a89160 75%, #CDB58B 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: goldShimmer 3s linear infinite;
+}
+
+.float-anim {
+  animation: float 3s ease-in-out infinite;
+}
+
+.pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
