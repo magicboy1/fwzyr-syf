@@ -24,9 +24,12 @@ export default function PlayerScreen() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownNum, setCountdownNum] = useState(3);
   const feedbackRef = useRef<PlayerFeedback | null>(null);
   const phaseRef = useRef(phase);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
   phaseRef.current = phase;
 
   useEffect(() => {
@@ -71,14 +74,34 @@ export default function PlayerScreen() {
     socket.on("game:questionStart", (data) => {
       setGameStarted(true);
       setQuestion(data.question);
-      setPhase("QUESTION");
       setSelectedAnswer(null);
       setFeedback(null);
       feedbackRef.current = null;
       setTimeLeft(data.question.timeLimit);
 
+      if (countdownRef.current) clearInterval(countdownRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
-      const start = Date.now();
+
+      const CD_STEPS = 3;
+      const CD_INTERVAL = 600;
+      const CD_TOTAL = CD_STEPS * CD_INTERVAL;
+
+      setShowCountdown(true);
+      setCountdownNum(CD_STEPS);
+      let count = CD_STEPS;
+      countdownRef.current = setInterval(() => {
+        count--;
+        if (count > 0) {
+          setCountdownNum(count);
+        } else {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          countdownRef.current = null;
+          setShowCountdown(false);
+          setPhase("QUESTION");
+        }
+      }, CD_INTERVAL);
+
+      const start = Date.now() + CD_TOTAL;
       timerRef.current = setInterval(() => {
         const elapsed = (Date.now() - start) / 1000;
         const remaining = Math.max(0, data.question.timeLimit - elapsed);
@@ -155,6 +178,7 @@ export default function PlayerScreen() {
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
       socket.off("game:questionStart");
       socket.off("game:questionEnd");
       socket.off("game:reveal");
@@ -207,6 +231,31 @@ export default function PlayerScreen() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col" dir="rtl" data-testid="player-screen">
+      <AnimatePresence>
+        {showCountdown && (
+          <motion.div
+            key="player-countdown"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/90"
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={countdownNum}
+                initial={{ scale: 3, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.3, opacity: 0 }}
+                transition={{ duration: 0.4, ease: "backOut" }}
+                className="text-8xl font-black text-[#CDB58B] drop-shadow-[0_0_40px_rgba(205,181,139,0.5)]"
+              >
+                {countdownNum}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence mode="wait">
         {phase === "INVALID" && (
           <motion.div key="invalid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center p-6">
