@@ -594,18 +594,12 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
             </motion.h2>
           </div>
 
-          <div className="my-4">
-            <CircularTimer timeLeft={timeLeft} timerDuration={question.timeLimit} size={100} />
+          <div className="my-6">
+            <CircularTimer timeLeft={timeLeft} timerDuration={question.timeLimit} size={120} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 w-full mb-4" style={{ maxWidth: "min(400px, 100%)" }}>
-            {OPTION_LABELS.map((label, i) => (
-              <PortraitOptionBlock key={label} label={label} index={i} />
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between w-full ds-small text-muted-foreground">
-            <span dir="ltr" data-testid="text-answered-count">{answeredCount}/{totalPlayers}</span>
+          <div className="flex items-center justify-center gap-6 ds-small text-muted-foreground mt-auto">
+            <span dir="ltr" data-testid="text-answered-count">{answeredCount}/{totalPlayers} أجابوا</span>
             {paused && <span className="text-[#CDB58B] font-semibold">متوقف</span>}
           </div>
         </div>
