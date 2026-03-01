@@ -458,38 +458,41 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, isPortrait }: { sessionI
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col items-center justify-center p-8" data-testid="lobby-screen">
-      <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="mb-8">
-        <img src={logoUrl} alt="السحور السنوي" className="mx-auto object-contain opacity-90" style={{ height: "clamp(64px, 6vw, 140px)" }} data-testid="img-logo" />
-      </motion.div>
-      <motion.h1 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.3, delay: 0.1 }} className="ds-question font-bold gold-shimmer mb-2">
-        فوازير سيف
-      </motion.h1>
-      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="ds-secondary text-muted-foreground mb-12">
-        امسح الرمز للانضمام
-      </motion.p>
-      <div className="flex flex-col items-center">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex items-center justify-center" style={{ padding: "clamp(24px, 3vw, 64px)" }} data-testid="lobby-screen">
+      <div className="flex items-center justify-center w-full gap-[5vw]">
         <motion.div
           initial={{ scale: 0, rotate: -10 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", bounce: 0.4, delay: 0.2 }}
-          whileHover={{ scale: 1.05 }}
-          className="bg-white rounded-3xl shadow-2xl shadow-[#CDB58B]/10 mb-10"
-          style={{ padding: "clamp(24px, 2vw, 48px)" }}
+          className="bg-white rounded-3xl shadow-2xl shadow-[#CDB58B]/20 flex-shrink-0"
+          style={{ padding: "clamp(24px, 2.5vw, 56px)" }}
           data-testid="qr-code"
         >
-          <QRCodeSVG value={joinUrl} size={Math.min(Math.max(Math.round(window.innerWidth * 0.18), 280), 600)} level="H" bgColor="#ffffff" fgColor="#1C1F2A" />
+          <QRCodeSVG value={joinUrl} size={Math.min(Math.max(Math.round(window.innerHeight * 0.55), 280), 700)} level="H" bgColor="#ffffff" fgColor="#1C1F2A" />
         </motion.div>
-        <motion.div
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="bg-card/80 backdrop-blur rounded-2xl px-10 py-6 border border-[#CDB58B]/20"
-        >
-          <motion.p key={playerCount} initial={{ scale: 1.5, color: "#e8d5a8" }} animate={{ scale: 1, color: "#CDB58B" }} className="ds-question font-bold text-[#CDB58B]" data-testid="text-player-count">
-            {playerCount}
+
+        <div className="flex flex-col items-center text-center">
+          <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="mb-6">
+            <img src={logoUrl} alt="السحور السنوي" className="mx-auto object-contain opacity-90" style={{ height: "clamp(64px, 8vh, 160px)" }} data-testid="img-logo" />
+          </motion.div>
+          <motion.h1 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.3, delay: 0.1 }} className="ds-question font-bold gold-shimmer mb-3">
+            فوازير سيف
+          </motion.h1>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="ds-secondary text-muted-foreground mb-10">
+            امسح الرمز للانضمام
           </motion.p>
-          <p className="ds-secondary text-muted-foreground mt-1">لاعب انضموا</p>
-        </motion.div>
+          <motion.div
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="bg-card/80 backdrop-blur rounded-2xl border border-[#CDB58B]/20"
+            style={{ padding: "clamp(16px, 2vw, 48px) clamp(32px, 4vw, 80px)" }}
+          >
+            <motion.p key={playerCount} initial={{ scale: 1.5, color: "#e8d5a8" }} animate={{ scale: 1, color: "#CDB58B" }} className="font-bold text-[#CDB58B]" style={{ fontSize: "clamp(48px, 8vw, 180px)" }} data-testid="text-player-count">
+              {playerCount}
+            </motion.p>
+            <p className="ds-secondary text-muted-foreground mt-1">لاعب انضموا</p>
+          </motion.div>
+        </div>
       </div>
     </motion.div>
   );
