@@ -665,59 +665,33 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
 }
 
 function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal; question: QuestionForBigScreen | null; isPortrait: boolean }) {
-  const streakMap = new Map<string, number>();
-  if (reveal.streakPlayers) {
-    for (const s of reveal.streakPlayers) {
-      streakMap.set(s.playerName, s.streak);
-    }
-  }
   useEffect(() => {
     confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 }, colors: ["#CDB58B", "#22c55e", "#e8d5a8"] });
   }, []);
 
-  const leaderboardSection = (
-    <div className={isPortrait ? "w-full" : ""}>
-      <h3 className={`font-semibold text-[#CDB58B] mb-4 ${isPortrait ? "ds-secondary text-center" : "text-lg"}`}>أفضل ٣</h3>
-      {reveal.leaderboard.slice(0, 3).map((entry, i) => {
-        const streak = streakMap.get(entry.name);
-        return (
-          <motion.div
-            key={entry.playerId}
-            initial={isPortrait ? { opacity: 0, scale: 0.95 } : { x: -20, opacity: 0 }}
-            animate={isPortrait ? { opacity: 1, scale: 1 } : { x: 0, opacity: 1 }}
-            transition={{ delay: 0.7 + i * 0.15, type: "spring" }}
-            className={`flex items-center gap-4 mb-3 ${isPortrait ? "py-1" : ""}`}
-          >
-            <span className={`${isPortrait ? "w-10 h-10 text-base" : "w-8 h-8 text-sm"} rounded-full flex items-center justify-center font-bold ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}>{entry.rank}</span>
-            <span className={`font-medium flex-1 flex items-center gap-2 ${isPortrait ? "ds-secondary" : ""}`} dir="auto">
-              {entry.name}
-              {streak && streak >= 3 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 1.2 + i * 0.1, type: "spring", bounce: 0.6 }}
-                  className="px-2 py-0.5 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-full text-xs font-bold text-orange-400"
-                >
-                  🔥 {streak}x
-                </motion.span>
-              )}
-            </span>
-            {entry.previousRank !== null && entry.previousRank !== entry.rank && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 1 + i * 0.1, type: "spring" }}
-                className={`${isPortrait ? "ds-small" : "text-sm"} ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}
-              >
-                {entry.rank < entry.previousRank ? `+${entry.previousRank - entry.rank}` : `-${entry.rank - entry.previousRank}`}
-              </motion.span>
-            )}
-            <span className={`font-bold text-[#CDB58B] tabular-nums ${isPortrait ? "ds-secondary" : ""}`} dir="ltr">{entry.score.toLocaleString()}</span>
-          </motion.div>
-        );
-      })}
-    </div>
-  );
+  const fastestSection = reveal.topFastest.length > 0 ? (
+    <motion.div
+      initial={isPortrait ? { opacity: 0, scale: 0.95 } : { x: -40, opacity: 0 }}
+      animate={isPortrait ? { opacity: 1, scale: 1 } : { x: 0, opacity: 1 }}
+      transition={{ delay: 0.5 }}
+      className="bg-card/50 rounded-2xl p-6 border border-border/30 w-full"
+    >
+      <h3 className={`font-semibold text-[#CDB58B] mb-4 ${isPortrait ? "ds-secondary text-center" : "text-lg"}`}>⚡ الأسرع إجابة</h3>
+      {reveal.topFastest.map((p, i) => (
+        <motion.div
+          key={i}
+          initial={isPortrait ? { opacity: 0, scale: 0.95 } : { x: 30, opacity: 0 }}
+          animate={isPortrait ? { opacity: 1, scale: 1 } : { x: 0, opacity: 1 }}
+          transition={{ delay: 0.6 + i * 0.15, type: "spring" }}
+          className="flex items-center gap-4 mb-3"
+        >
+          <span className={`${isPortrait ? "w-10 h-10" : "w-8 h-8"} rounded-full bg-[#CDB58B]/20 flex items-center justify-center font-bold text-[#CDB58B] ${isPortrait ? "ds-secondary" : "text-sm"}`}>{i + 1}</span>
+          <span className={`font-medium flex-1 ${isPortrait ? "ds-secondary" : ""}`} dir="auto">{p.name}</span>
+          <span className={`text-muted-foreground ${isPortrait ? "ds-secondary" : ""}`} dir="ltr">{(p.timeMs / 1000).toFixed(1)}ث</span>
+        </motion.div>
+      ))}
+    </motion.div>
+  ) : null;
 
   if (isPortrait) {
     return (
@@ -756,32 +730,7 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
             })}
           </div>
 
-          {reveal.topFastest.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
-              className="bg-card/50 rounded-2xl p-5 border border-border/30 w-full mb-4"
-            >
-              <h3 className="ds-secondary font-semibold text-[#CDB58B] mb-3 text-center">⚡ الأسرع إجابة</h3>
-              {reveal.topFastest.map((p, i) => (
-                <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 + i * 0.15 }} className="flex items-center gap-4 mb-3">
-                  <span className="w-9 h-9 rounded-full bg-[#CDB58B]/20 flex items-center justify-center font-bold text-[#CDB58B] ds-secondary">{i + 1}</span>
-                  <span className="ds-secondary font-medium flex-1" dir="auto">{p.name}</span>
-                  <span className="ds-secondary text-muted-foreground" dir="ltr">{(p.timeMs / 1000).toFixed(1)}ث</span>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.6 }}
-            className="bg-card/50 rounded-2xl p-5 border border-border/30 w-full"
-          >
-            {leaderboardSection}
-          </motion.div>
+          {fastestSection}
         </div>
       </motion.div>
     );
@@ -824,24 +773,8 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
           );
         })}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1">
-        {reveal.topFastest.length > 0 && (
-          <motion.div initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="bg-card/50 rounded-2xl p-6 border border-border/30">
-            <h3 className="text-lg font-semibold text-[#CDB58B] mb-4">الأسرع إجابة</h3>
-            {reveal.topFastest.map((p, i) => (
-              <motion.div key={i} initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.7 + i * 0.2, type: "spring" }} className="flex items-center gap-4 mb-3">
-                <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.8 + i * 0.2, type: "spring", bounce: 0.6 }} className="w-8 h-8 rounded-full bg-[#CDB58B]/20 flex items-center justify-center font-bold text-[#CDB58B] text-sm">
-                  {i + 1}
-                </motion.span>
-                <span className="font-medium flex-1" dir="auto">{p.name}</span>
-                <span className="text-muted-foreground" dir="ltr">{(p.timeMs / 1000).toFixed(1)}ث</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-        <motion.div initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="bg-card/50 rounded-2xl p-6 border border-border/30">
-          {leaderboardSection}
-        </motion.div>
+      <div className="flex-1">
+        {fastestSection}
       </div>
     </motion.div>
   );
