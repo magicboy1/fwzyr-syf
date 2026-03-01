@@ -43,3 +43,4 @@ waitForPort = 5000
 
 [userenv.shared]
 ADMIN_PASSWORD = "hossam2026"
+NODE_OPTIONS = "--max-old-space-size=512"

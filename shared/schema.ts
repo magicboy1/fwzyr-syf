@@ -55,6 +55,7 @@ export interface GameSession {
   pausedTimeRemaining: number | null;
   players: Record<string, Player>;
   answers: PlayerAnswer[];
+  answersIndex: Map<string, PlayerAnswer>;
   streakAlerts: { playerName: string; streak: number }[];
   previousRanks: Record<string, number>;
   createdAt: number;

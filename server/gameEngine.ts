@@ -41,6 +41,7 @@ export function createSession(questions: Question[], defaultTimeLimit: number = 
     pausedTimeRemaining: null,
     players: {},
     answers: [],
+    answersIndex: new Map(),
     streakAlerts: [],
     previousRanks: {},
     createdAt: Date.now(),
@@ -178,6 +179,16 @@ export function getQuestionForPlayer(sessionId: string): QuestionForPlayer | nul
   };
 }
 
+function getRank(session: GameSession, playerId: string): number {
+  const players = Object.values(session.players);
+  const myScore = session.players[playerId]?.score ?? 0;
+  let rank = 1;
+  for (const p of players) {
+    if (p.score > myScore) rank++;
+  }
+  return rank;
+}
+
 export function submitAnswer(
   sessionId: string,
   playerId: string,
@@ -190,10 +201,8 @@ export function submitAnswer(
   if (!player) return null;
 
   const qi = session.currentQuestionIndex;
-  const alreadyAnswered = session.answers.find(
-    (a) => a.playerId === playerId && a.questionIndex === qi
-  );
-  if (alreadyAnswered) return null;
+  const answerKey = `${playerId}:${qi}`;
+  if (session.answersIndex.has(answerKey)) return null;
 
   if (!session.timerStartedAt || !session.timerDuration) return null;
 
@@ -248,9 +257,9 @@ export function submitAnswer(
       correct: true,
     };
     session.answers.push(pa);
+    session.answersIndex.set(answerKey, pa);
 
-    const leaderboard = getLeaderboard(sessionId);
-    const rank = leaderboard.findIndex((e) => e.playerId === playerId) + 1;
+    const rank = getRank(session, playerId);
 
     return {
       correct: true,
@@ -275,9 +284,9 @@ export function submitAnswer(
       correct: false,
     };
     session.answers.push(pa);
+    session.answersIndex.set(answerKey, pa);
 
-    const leaderboard = getLeaderboard(sessionId);
-    const rank = leaderboard.findIndex((e) => e.playerId === playerId) + 1;
+    const rank = getRank(session, playerId);
 
     return {
       correct: false,
@@ -298,19 +307,19 @@ export function endQuestion(sessionId: string): void {
   const qi = session.currentQuestionIndex;
   const playerIds = Object.keys(session.players);
   for (const pid of playerIds) {
-    const answered = session.answers.find(
-      (a) => a.playerId === pid && a.questionIndex === qi
-    );
-    if (!answered) {
+    const key = `${pid}:${qi}`;
+    if (!session.answersIndex.has(key)) {
       session.players[pid].streak = 0;
-      session.answers.push({
+      const pa: PlayerAnswer = {
         playerId: pid,
         questionIndex: qi,
         answer: null,
         timeMs: 0,
         points: 0,
         correct: false,
-      });
+      };
+      session.answers.push(pa);
+      session.answersIndex.set(key, pa);
     }
   }
 }
@@ -520,6 +529,7 @@ export function restartGame(sessionId: string): boolean {
   session.paused = false;
   session.pausedTimeRemaining = null;
   session.answers = [];
+  session.answersIndex = new Map();
   session.streakAlerts = [];
   session.previousRanks = {};
 

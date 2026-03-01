@@ -172,7 +172,16 @@ export async function registerRoutes(
   });
 
   app.get("/api/health", (_req, res) => {
-    res.status(200).send("OK");
+    const mem = process.memoryUsage();
+    res.json({
+      status: "ok",
+      uptime: Math.floor(process.uptime()),
+      memory: {
+        rss: Math.round(mem.rss / 1024 / 1024),
+        heap: Math.round(mem.heapUsed / 1024 / 1024),
+        heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
+      },
+    });
   });
 
   app.get("/api/time", (_req, res) => {

@@ -67,6 +67,21 @@ LOBBY -> [CONTEXT ->] QUESTION -> REVEAL -> LEADERBOARD -> (repeat) -> END
 - Timer pulse: countdown number and timer text pulse/scale when ≤5 seconds
 - Haptic: navigator.vibrate on answer selection (mobile)
 
+### Performance & Stability (500-player event)
+- WebSocket-only transport (no polling) — both server and client
+- `answersIndex` Map for O(1) duplicate-answer checks (replaces linear array scans)
+- `getRank()` uses O(n) count instead of sorting full leaderboard per answer
+- `contextTimers` and `emitNextQuestion`/`emitQuestionToAll` are defined at module scope (not per-connection)
+- All socket handlers wrapped in try-catch to prevent crashes
+- `uncaughtException` and `unhandledRejection` handlers prevent process exit
+- API response body logging removed (was serializing full question arrays)
+- `NODE_OPTIONS=--max-old-space-size=512` env var set
+- `httpServer.maxConnections=2000`, `keepAliveTimeout=65000`, `headersTimeout=66000`
+- `GET /api/health` returns memory stats (rss, heap, heapTotal in MB)
+- Socket.IO: `connectTimeout=10000`, `maxHttpBufferSize=100KB`
+- Client reconnection: 20 attempts, max 5s delay
+- Autoscale max machines MUST remain 1 (in-memory state)
+
 ### Dependencies Added
 - socket.io, socket.io-client
 - qrcode.react
