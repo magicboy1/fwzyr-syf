@@ -935,7 +935,7 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
 
           <div className="grid grid-cols-2 gap-3 w-full mb-6">
             {stats.fastestCorrect && <StatCard title="أسرع إجابة صحيحة" value={`${(stats.fastestCorrect.timeMs / 1000).toFixed(1)} ثانية`} subtitle={stats.fastestCorrect.playerName} delay={0.3} isPortrait />}
-            {stats.bestStreak && <StatCard title="أفضل سلسلة" value={`${stats.bestStreak.streakLength} متتالية`} subtitle={stats.bestStreak.playerName} delay={0.4} isPortrait />}
+            {stats.bestStreak && <StatCard title="أطول إجابات صحيحة متتالية 🔥" value={`${stats.bestStreak.streakLength} على التوالي`} subtitle={stats.bestStreak.playerName} delay={0.4} isPortrait />}
             {stats.hardestQuestion && <StatCard title="أصعب سؤال" value={`${stats.hardestQuestion.correctPercent}% صحيح`} subtitle={`سؤال ${stats.hardestQuestion.questionIndex + 1}`} delay={0.5} isPortrait />}
             <StatCard title="متوسط وقت الإجابة" value={`${(stats.avgResponseTime / 1000).toFixed(1)} ثانية`} subtitle="جميع اللاعبين" delay={0.6} isPortrait />
             <StatCard title="نسبة المشاركة" value={`${stats.participationRate}%`} subtitle={`${stats.totalPlayers} لاعب`} delay={0.7} isPortrait />
@@ -988,7 +988,7 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
       )}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 w-full mb-8" style={{ maxWidth: "70%" }}>
         {stats.fastestCorrect && <StatCard title="أسرع إجابة صحيحة" value={`${(stats.fastestCorrect.timeMs / 1000).toFixed(1)} ثانية`} subtitle={stats.fastestCorrect.playerName} delay={0.3} />}
-        {stats.bestStreak && <StatCard title="أفضل سلسلة" value={`${stats.bestStreak.streakLength} متتالية`} subtitle={stats.bestStreak.playerName} delay={0.4} />}
+        {stats.bestStreak && <StatCard title="أطول إجابات صحيحة متتالية 🔥" value={`${stats.bestStreak.streakLength} على التوالي`} subtitle={stats.bestStreak.playerName} delay={0.4} />}
         {stats.hardestQuestion && <StatCard title="أصعب سؤال" value={`${stats.hardestQuestion.correctPercent}% صحيح`} subtitle={`سؤال ${stats.hardestQuestion.questionIndex + 1}`} delay={0.5} />}
         <StatCard title="متوسط وقت الإجابة" value={`${(stats.avgResponseTime / 1000).toFixed(1)} ثانية`} subtitle="جميع اللاعبين" delay={0.6} />
         <StatCard title="نسبة المشاركة" value={`${stats.participationRate}%`} subtitle={`${stats.totalPlayers} لاعب`} delay={0.7} />
