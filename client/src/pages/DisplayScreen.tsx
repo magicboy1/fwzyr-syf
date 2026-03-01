@@ -686,10 +686,10 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
             initial={isPortrait ? { opacity: 0, scale: 0.95 } : { x: -20, opacity: 0 }}
             animate={isPortrait ? { opacity: 1, scale: 1 } : { x: 0, opacity: 1 }}
             transition={{ delay: 0.7 + i * 0.15, type: "spring" }}
-            className="flex items-center gap-4 mb-3"
+            className={`flex items-center gap-4 mb-3 ${isPortrait ? "py-1" : ""}`}
           >
-            <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}>{entry.rank}</span>
-            <span className="font-medium flex-1 flex items-center gap-2" dir="auto">
+            <span className={`${isPortrait ? "w-10 h-10 text-base" : "w-8 h-8 text-sm"} rounded-full flex items-center justify-center font-bold ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}>{entry.rank}</span>
+            <span className={`font-medium flex-1 flex items-center gap-2 ${isPortrait ? "ds-secondary" : ""}`} dir="auto">
               {entry.name}
               {streak && streak >= 3 && (
                 <motion.span
@@ -707,12 +707,12 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 1 + i * 0.1, type: "spring" }}
-                className={`text-sm ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}
+                className={`${isPortrait ? "ds-small" : "text-sm"} ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}
               >
                 {entry.rank < entry.previousRank ? `+${entry.previousRank - entry.rank}` : `-${entry.rank - entry.previousRank}`}
               </motion.span>
             )}
-            <span className="font-bold text-[#CDB58B] tabular-nums" dir="ltr">{entry.score.toLocaleString()}</span>
+            <span className={`font-bold text-[#CDB58B] tabular-nums ${isPortrait ? "ds-secondary" : ""}`} dir="ltr">{entry.score.toLocaleString()}</span>
           </motion.div>
         );
       })}
@@ -722,13 +722,13 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
   if (isPortrait) {
     return (
       <motion.div {...pFade} className="min-h-screen flex flex-col overflow-y-auto" style={{ padding: "5%" }} data-testid="reveal-screen">
-        <div style={{ maxWidth: "80%", margin: "0 auto" }} className="w-full flex flex-col items-center">
-          <p className="ds-small text-muted-foreground mb-1">سؤال {reveal.questionIndex + 1}</p>
-          {question && <h2 className="ds-secondary font-bold text-center mb-4" dir="auto">{question.text}</h2>}
+        <div style={{ maxWidth: "85%", margin: "0 auto" }} className="w-full flex flex-col items-center">
+          <p className="ds-secondary text-muted-foreground mb-2">سؤال {reveal.questionIndex + 1}</p>
+          {question && <h2 className="ds-question font-bold text-center mb-5" dir="auto">{question.text}</h2>}
 
           {reveal.isDoublePoints && (
-            <div className="text-center mb-3">
-              <span className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] ds-small font-semibold">x2 نقاط مضاعفة</span>
+            <div className="text-center mb-4">
+              <span className="px-5 py-2 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] ds-secondary font-semibold">x2 نقاط مضاعفة</span>
             </div>
           )}
 
@@ -741,25 +741,43 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: isCorrect ? 1.02 : 1 }}
                   transition={{ delay: i * 0.1, duration: 0.3 }}
-                  className={`rounded-xl flex items-center gap-3 px-4 py-3 border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-40"}`}
+                  className={`rounded-xl flex items-center gap-3 px-5 py-4 border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-40"}`}
                   data-testid={`reveal-option-${label}`}
                 >
                   {isCorrect && (
-                    <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring" }} className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring" }} className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                     </motion.span>
                   )}
-                  <span className={`ds-small font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{reveal.options?.[i] || label}</span>
-                  <span className="ds-small font-bold tabular-nums text-muted-foreground" dir="ltr">{reveal.percentages[label]}%</span>
+                  <span className={`ds-secondary font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{reveal.options?.[i] || label}</span>
+                  <span className="ds-secondary font-bold tabular-nums text-muted-foreground" dir="ltr">{reveal.percentages[label]}%</span>
                 </motion.div>
               );
             })}
           </div>
 
+          {reveal.topFastest.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+              className="bg-card/50 rounded-2xl p-5 border border-border/30 w-full mb-4"
+            >
+              <h3 className="ds-secondary font-semibold text-[#CDB58B] mb-3 text-center">⚡ الأسرع إجابة</h3>
+              {reveal.topFastest.map((p, i) => (
+                <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 + i * 0.15 }} className="flex items-center gap-4 mb-3">
+                  <span className="w-9 h-9 rounded-full bg-[#CDB58B]/20 flex items-center justify-center font-bold text-[#CDB58B] ds-secondary">{i + 1}</span>
+                  <span className="ds-secondary font-medium flex-1" dir="auto">{p.name}</span>
+                  <span className="ds-secondary text-muted-foreground" dir="ltr">{(p.timeMs / 1000).toFixed(1)}ث</span>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.6 }}
             className="bg-card/50 rounded-2xl p-5 border border-border/30 w-full"
           >
             {leaderboardSection}
