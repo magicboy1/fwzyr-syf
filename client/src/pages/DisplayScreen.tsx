@@ -903,23 +903,23 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-xl font-bold text-gray-800 mb-2 shadow-lg">2</div>
                   <p className="font-semibold ds-small mb-1 text-center" dir="auto">{stats.podium[1].name}</p>
                   <p className="text-[#CDB58B] font-bold ds-small" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
-                  <motion.div initial={{ height: 0 }} animate={{ height: 72 }} transition={{ delay: 0.8, duration: 0.5 }} className="w-20 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-2" />
+                  <motion.div initial={{ height: 0 }} animate={{ height: 80 }} transition={{ delay: 0.8, duration: 0.5 }} className="w-24 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-2" />
                 </motion.div>
               )}
-              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }} className="flex flex-col items-center -mb-4">
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }} className="flex flex-col items-center">
                 <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }} className="w-24 h-24 rounded-full bg-gradient-to-br from-[#CDB58B] via-[#e8d5a8] to-[#a89160] flex items-center justify-center text-3xl font-bold text-white mb-2 shadow-2xl shadow-[#CDB58B]/40">
                   1
                 </motion.div>
                 <p className="font-bold ds-secondary mb-1 text-center" dir="auto">{stats.podium[0].name}</p>
                 <p className="text-[#CDB58B] font-bold ds-secondary" dir="ltr">{stats.podium[0].score.toLocaleString()}</p>
-                <motion.div initial={{ height: 0 }} animate={{ height: 96 }} transition={{ delay: 0.5, duration: 0.6 }} className="w-24 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-2" />
+                <motion.div initial={{ height: 0 }} animate={{ height: 120 }} transition={{ delay: 0.5, duration: 0.6 }} className="w-28 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-2" />
               </motion.div>
               {stats.podium.length > 2 && (
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.1 }} className="flex flex-col items-center">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-xl font-bold text-white mb-2 shadow-lg">3</div>
                   <p className="font-semibold ds-small mb-1 text-center" dir="auto">{stats.podium[2].name}</p>
                   <p className="text-[#CDB58B] font-bold ds-small" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
-                  <motion.div initial={{ height: 0 }} animate={{ height: 48 }} transition={{ delay: 1.1, duration: 0.4 }} className="w-20 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-2" />
+                  <motion.div initial={{ height: 0 }} animate={{ height: 56 }} transition={{ delay: 1.1, duration: 0.4 }} className="w-24 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-2" />
                 </motion.div>
               )}
             </div>
@@ -953,10 +953,10 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
               </motion.div>
               <p className="font-semibold text-lg mb-1" dir="auto">{stats.podium[1].name}</p>
               <p className="text-[#CDB58B] font-bold" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
-              <motion.div initial={{ height: 0 }} animate={{ height: 96 }} transition={{ delay: 0.8, duration: 0.5 }} className="w-24 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-3" />
+              <motion.div initial={{ height: 0 }} animate={{ height: 100 }} transition={{ delay: 0.8, duration: 0.5 }} className="w-28 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-3" />
             </motion.div>
           )}
-          <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, type: "spring", bounce: 0.4 }} className="flex flex-col items-center -mb-4">
+          <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
             <motion.div animate={{ scale: [1, 1.08, 1], rotate: [0, 2, -2, 0] }} transition={{ duration: 2, repeat: Infinity }} className="w-28 h-28 rounded-full bg-gradient-to-br from-[#CDB58B] via-[#e8d5a8] to-[#a89160] flex items-center justify-center text-4xl font-bold text-white mb-3 shadow-2xl shadow-[#CDB58B]/40">
               1
             </motion.div>
@@ -964,7 +964,7 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
             <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.7, type: "spring" }} className="text-[#CDB58B] font-bold text-xl" dir="ltr">
               {stats.podium[0].score.toLocaleString()}
             </motion.p>
-            <motion.div initial={{ height: 0 }} animate={{ height: 128 }} transition={{ delay: 0.5, duration: 0.6 }} className="w-28 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-3" />
+            <motion.div initial={{ height: 0 }} animate={{ height: 140 }} transition={{ delay: 0.5, duration: 0.6 }} className="w-32 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-3" />
           </motion.div>
           {stats.podium.length > 2 && (
             <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 1.1, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
@@ -973,7 +973,7 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
               </motion.div>
               <p className="font-semibold text-lg mb-1" dir="auto">{stats.podium[2].name}</p>
               <p className="text-[#CDB58B] font-bold" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
-              <motion.div initial={{ height: 0 }} animate={{ height: 64 }} transition={{ delay: 1.1, duration: 0.4 }} className="w-24 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-3" />
+              <motion.div initial={{ height: 0 }} animate={{ height: 72 }} transition={{ delay: 1.1, duration: 0.4 }} className="w-28 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-3" />
             </motion.div>
           )}
         </div>
