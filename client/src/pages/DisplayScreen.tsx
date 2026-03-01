@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { getSocket } from "@/lib/socket";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,6 +9,26 @@ import logoUrl from "@assets/logo_1772218489356.png";
 import type { QuestionForBigScreen, QuestionReveal, LeaderboardEntry, FinalStats } from "@shared/schema";
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
+const OPTION_COLORS = [
+  { bg: "bg-red-500/15", border: "border-red-400/40", text: "text-red-400", fill: "#ef4444" },
+  { bg: "bg-blue-500/15", border: "border-blue-400/40", text: "text-blue-400", fill: "#3b82f6" },
+  { bg: "bg-yellow-500/15", border: "border-yellow-400/40", text: "text-yellow-400", fill: "#eab308" },
+  { bg: "bg-green-500/15", border: "border-green-400/40", text: "text-green-400", fill: "#22c55e" },
+] as const;
+
+function useIsPortrait() {
+  const [isPortrait, setIsPortrait] = useState(() =>
+    typeof window !== "undefined" ? window.innerHeight > window.innerWidth : false
+  );
+  useEffect(() => {
+    const check = () => setIsPortrait(window.innerHeight > window.innerWidth);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isPortrait;
+}
+
+const pFade = { initial: { opacity: 0, scale: 0.97 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 0.97 } };
 
 export default function DisplayScreen() {
   const [, navigate] = useLocation();
@@ -33,6 +53,7 @@ export default function DisplayScreen() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const prevAnsweredRef = useRef(0);
+  const isPortrait = useIsPortrait();
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -70,16 +91,11 @@ export default function DisplayScreen() {
 
     socket.on("game:playerJoined", (data) => {
       setPlayerCount(data.playerCount);
-      setPlayers(data.players);
-    });
-    socket.on("game:playerLeft", (data) => {
-      setPlayerCount(data.playerCount);
-      setPlayers(data.players);
+      setPlayers(data.players || []);
     });
 
-    socket.on("game:doublePoints", () => {
-      setShowDoublePoints(true);
-      setTimeout(() => setShowDoublePoints(false), 3000);
+    socket.on("game:playerLeft", (data) => {
+      setPlayerCount(data.playerCount);
     });
 
     socket.on("game:answerUpdate", (data) => {
@@ -88,8 +104,10 @@ export default function DisplayScreen() {
     });
 
     socket.on("game:context", (data) => {
-      setContextData({ context: data.context, index: data.index, totalQuestions: data.totalQuestions });
       setPhase("CONTEXT");
+      setContextData(data);
+      setReveal(null);
+      setQuestion(null);
     });
 
     socket.on("game:questionStart", (data) => {
@@ -102,37 +120,42 @@ export default function DisplayScreen() {
       prevAnsweredRef.current = 0;
 
       if (countdownRef.current) clearInterval(countdownRef.current);
-      if (timerRef.current) clearInterval(timerRef.current);
 
-      const CD_STEPS = 3;
-      const CD_INTERVAL = 600;
-      const CD_TOTAL = CD_STEPS * CD_INTERVAL;
-
-      setShowCountdown(true);
-      setCountdownNum(CD_STEPS);
-      let count = CD_STEPS;
-      countdownRef.current = setInterval(() => {
-        count--;
-        if (count > 0) {
-          setCountdownNum(count);
-        } else {
-          if (countdownRef.current) clearInterval(countdownRef.current);
-          countdownRef.current = null;
-          setShowCountdown(false);
+      if (data.question.isDoublePoints) {
+        setShowDoublePoints(true);
+        setTimeout(() => {
+          setShowDoublePoints(false);
           setPhase("QUESTION");
-        }
-      }, CD_INTERVAL);
-
-      const start = Date.now() + CD_TOTAL;
-      timerRef.current = setInterval(() => {
-        const elapsed = (Date.now() - start) / 1000;
-        const remaining = Math.max(0, data.question.timeLimit - elapsed);
-        setTimeLeft(remaining);
-        if (remaining <= 0 && timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-      }, 50);
+          startTimer(data.question.timeLimit);
+        }, 2500);
+      } else {
+        setShowCountdown(true);
+        setCountdownNum(3);
+        let count = 3;
+        countdownRef.current = setInterval(() => {
+          count--;
+          if (count <= 0) {
+            if (countdownRef.current) clearInterval(countdownRef.current);
+            setShowCountdown(false);
+            setPhase("QUESTION");
+            startTimer(data.question.timeLimit);
+          } else {
+            setCountdownNum(count);
+          }
+        }, 700);
+      }
     });
+
+    function startTimer(duration: number) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      const startTime = Date.now();
+      timerRef.current = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const remaining = Math.max(0, duration - elapsed);
+        setTimeLeft(remaining);
+        if (remaining <= 0 && timerRef.current) clearInterval(timerRef.current);
+      }, 100);
+    }
 
     socket.on("game:questionEnd", () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -140,32 +163,20 @@ export default function DisplayScreen() {
     });
 
     socket.on("game:reveal", (data) => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      setPhase("REVEAL");
       setReveal(data.reveal);
       setContextData(null);
-      setPhase("REVEAL");
-    });
 
-    socket.on("game:leaderboard", (data) => {
-      setLeaderboard(data.leaderboard);
-      setPhase("LEADERBOARD");
-    });
-
-    socket.on("game:end", (data) => {
-      setStats(data.stats);
-      setPhase("END");
-      setTimeout(() => {
-        const duration = 4000;
-        const end = Date.now() + duration;
-        const frame = () => {
-          confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: ["#CDB58B", "#e8d5a8", "#a89160"] });
-          confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: ["#CDB58B", "#e8d5a8", "#a89160"] });
-          if (Date.now() < end) requestAnimationFrame(frame);
-        };
+      const frame = () => {
+        confetti({ particleCount: 3, angle: 60 + Math.random() * 60, spread: 55, origin: { x: Math.random(), y: 0.6 }, colors: ["#CDB58B", "#22c55e", "#e8d5a8"], disableForReducedMotion: true });
+      };
+      let count = 0;
+      const interval = setInterval(() => {
         frame();
+        count++;
+        if (count > 20) clearInterval(interval);
       }, 500);
     });
-
 
     socket.on("game:paused", () => {
       setPaused(true);
@@ -174,26 +185,44 @@ export default function DisplayScreen() {
 
     socket.on("game:resumed", (data) => {
       setPaused(false);
-      if (timerRef.current) clearInterval(timerRef.current);
-      const remaining = data.timerDuration - (Date.now() - data.timerStartedAt) / 1000;
-      setTimeLeft(Math.max(0, remaining));
-      const start = Date.now();
-      timerRef.current = setInterval(() => {
-        const elapsed = (Date.now() - start) / 1000;
-        const r = Math.max(0, remaining - elapsed);
-        setTimeLeft(r);
-        if (r <= 0 && timerRef.current) clearInterval(timerRef.current);
-      }, 50);
+      if (data?.timeLeft > 0) {
+        setTimeLeft(data.timeLeft);
+        if (timerRef.current) clearInterval(timerRef.current);
+        const startTime = Date.now();
+        timerRef.current = setInterval(() => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const remaining = Math.max(0, data.timeLeft - elapsed);
+          setTimeLeft(remaining);
+          if (remaining <= 0 && timerRef.current) clearInterval(timerRef.current);
+        }, 100);
+      }
+    });
+
+    socket.on("game:leaderboard", (data) => {
+      setPhase("LEADERBOARD");
+      setLeaderboard(data.leaderboard);
+    });
+
+    socket.on("game:end", (data) => {
+      setPhase("END");
+      setStats(data.stats);
     });
 
     socket.on("game:restarted", () => {
       setPhase("LOBBY");
-      setPlayerCount(0);
-      setPlayers([]);
       setQuestion(null);
       setReveal(null);
       setLeaderboard([]);
       setStats(null);
+      setTimeLeft(0);
+      setContextData(null);
+      setAnsweredCount(0);
+      setTotalPlayers(0);
+    });
+
+    socket.on("game:doublePoints", () => {
+      setShowDoublePoints(true);
+      setTimeout(() => setShowDoublePoints(false), 2500);
     });
 
     return () => {
@@ -201,7 +230,6 @@ export default function DisplayScreen() {
       if (countdownRef.current) clearInterval(countdownRef.current);
       socket.off("game:playerJoined");
       socket.off("game:playerLeft");
-      socket.off("game:doublePoints");
       socket.off("game:answerUpdate");
       socket.off("game:context");
       socket.off("game:questionStart");
@@ -287,7 +315,6 @@ export default function DisplayScreen() {
         )}
       </AnimatePresence>
 
-
       {phase === "CONNECTING" && (
         <div className="flex items-center justify-center min-h-screen">
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 border-4 border-[#CDB58B]/30 border-t-[#CDB58B] rounded-full" />
@@ -301,19 +328,19 @@ export default function DisplayScreen() {
         </div>
       )}
 
-      {phase === "LOBBY" && <LobbyScreen sessionId={sessionId} joinUrl={joinUrl} playerCount={playerCount} players={players} />}
-      {phase === "CONTEXT" && contextData && <ContextScreen context={contextData.context} index={contextData.index} totalQuestions={contextData.totalQuestions} />}
+      {phase === "LOBBY" && <LobbyScreen sessionId={sessionId} joinUrl={joinUrl} playerCount={playerCount} isPortrait={isPortrait} />}
+      {phase === "CONTEXT" && contextData && <ContextScreen context={contextData.context} index={contextData.index} totalQuestions={contextData.totalQuestions} isPortrait={isPortrait} />}
       {phase === "QUESTION" && question && (
-        <QuestionScreen question={question} timeLeft={timeLeft} timerPercent={timerPercent} paused={paused} answeredCount={answeredCount} totalPlayers={totalPlayers} contextText={contextData?.context} />
+        <QuestionScreen question={question} timeLeft={timeLeft} timerPercent={timerPercent} paused={paused} answeredCount={answeredCount} totalPlayers={totalPlayers} contextText={contextData?.context} isPortrait={isPortrait} />
       )}
-      {phase === "REVEAL" && reveal && <RevealScreen reveal={reveal} question={question} />}
-      {phase === "LEADERBOARD" && <LeaderboardScreen leaderboard={leaderboard} />}
-      {phase === "END" && stats && <EndScreen stats={stats} />}
+      {phase === "REVEAL" && reveal && <RevealScreen reveal={reveal} question={question} isPortrait={isPortrait} />}
+      {phase === "LEADERBOARD" && <LeaderboardScreen leaderboard={leaderboard} isPortrait={isPortrait} />}
+      {phase === "END" && stats && <EndScreen stats={stats} isPortrait={isPortrait} />}
     </div>
   );
 }
 
-function ContextScreen({ context, index, totalQuestions }: { context: string; index: number; totalQuestions: number }) {
+function ContextScreen({ context, index, totalQuestions, isPortrait }: { context: string; index: number; totalQuestions: number; isPortrait: boolean }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -327,6 +354,37 @@ function ContextScreen({ context, index, totalQuestions }: { context: string; in
     return () => clearInterval(interval);
   }, []);
 
+  if (isPortrait) {
+    return (
+      <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center" style={{ padding: "5%" }} data-testid="context-screen">
+        <div style={{ maxWidth: "80%" }} className="flex flex-col items-center text-center">
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="ds-secondary text-muted-foreground mb-3">
+            سؤال {index + 1} من {totalQuestions}
+          </motion.span>
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-[#CDB58B] ds-small font-semibold tracking-wide mb-6">
+            📖 اقرأ المقدمة
+          </motion.span>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4, duration: 0.7 }}
+            className="bg-card/60 border border-[#CDB58B]/20 rounded-2xl px-8 py-8 w-full"
+          >
+            <p className="ds-question text-foreground text-center leading-relaxed font-bold" dir="auto" data-testid="text-context">
+              {context}
+            </p>
+          </motion.div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-8 w-48">
+            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-[#CDB58B]/60 transition-all duration-100" style={{ width: `${progress}%` }} />
+            </div>
+            <p className="ds-small text-muted-foreground text-center mt-2">السؤال قادم...</p>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -335,50 +393,25 @@ function ContextScreen({ context, index, totalQuestions }: { context: string; in
       className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-16"
       data-testid="context-screen"
     >
-      <motion.span
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="text-muted-foreground text-lg mb-4"
-      >
+      <motion.span initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-muted-foreground text-lg mb-4">
         سؤال {index + 1} من {totalQuestions}
       </motion.span>
-
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="text-[#CDB58B] text-sm font-semibold tracking-wide mb-6 uppercase"
-      >
+      <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-[#CDB58B] text-sm font-semibold tracking-wide mb-6 uppercase">
         📖 اقرأ المقدمة
       </motion.span>
-
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ delay: 0.4, duration: 0.7, type: "spring", bounce: 0.2 }}
         className="bg-card/60 border border-[#CDB58B]/20 rounded-2xl px-10 py-8 lg:px-16 lg:py-12 max-w-4xl"
       >
-        <p
-          className="text-3xl lg:text-5xl text-foreground text-center leading-relaxed font-bold"
-          dir="auto"
-          data-testid="text-context"
-        >
+        <p className="text-3xl lg:text-5xl text-foreground text-center leading-relaxed font-bold" dir="auto" data-testid="text-context">
           {context}
         </p>
       </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className="mt-10 w-64"
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-10 w-64">
         <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full bg-[#CDB58B]/60 transition-all duration-100"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full rounded-full bg-[#CDB58B]/60 transition-all duration-100" style={{ width: `${progress}%` }} />
         </div>
         <p className="text-xs text-muted-foreground text-center mt-2">السؤال قادم...</p>
       </motion.div>
@@ -386,35 +419,55 @@ function ContextScreen({ context, index, totalQuestions }: { context: string; in
   );
 }
 
-function LobbyScreen({ sessionId, joinUrl, playerCount, players }: { sessionId: string; joinUrl: string; playerCount: number; players: { id: string; name: string }[] }) {
+function LobbyScreen({ sessionId, joinUrl, playerCount, isPortrait }: { sessionId: string; joinUrl: string; playerCount: number; isPortrait: boolean }) {
+  if (isPortrait) {
+    return (
+      <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center" style={{ padding: "5%" }} data-testid="lobby-screen">
+        <div style={{ maxWidth: "80%" }} className="flex flex-col items-center text-center w-full">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="mb-6">
+            <img src={logoUrl} alt="السحور السنوي" className="h-16 mx-auto object-contain opacity-90" data-testid="img-logo" />
+          </motion.div>
+          <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="ds-question font-bold gold-shimmer mb-2">
+            فوازير سيف
+          </motion.h1>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="ds-secondary text-muted-foreground mb-8">
+            امسح الرمز للانضمام
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white p-6 rounded-3xl shadow-2xl shadow-[#CDB58B]/10 mb-8"
+            data-testid="qr-code"
+          >
+            <QRCodeSVG value={joinUrl} size={220} level="H" bgColor="#ffffff" fgColor="#1C1F2A" />
+          </motion.div>
+          <motion.div
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="bg-card/80 backdrop-blur rounded-2xl px-10 py-5 border border-[#CDB58B]/20"
+          >
+            <motion.p key={playerCount} initial={{ scale: 1.5, color: "#e8d5a8" }} animate={{ scale: 1, color: "#CDB58B" }} className="text-5xl font-bold text-[#CDB58B]" data-testid="text-player-count">
+              {playerCount}
+            </motion.p>
+            <p className="ds-small text-muted-foreground mt-1">لاعب انضموا</p>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col items-center justify-center p-8" data-testid="lobby-screen">
-      <motion.div
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", bounce: 0.4 }}
-        className="mb-8"
-      >
+      <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="mb-8">
         <img src={logoUrl} alt="السحور السنوي" className="h-20 mx-auto object-contain opacity-90" data-testid="img-logo" />
       </motion.div>
-
-      <motion.h1
-        initial={{ y: -30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", bounce: 0.3, delay: 0.1 }}
-        className="text-5xl font-bold gold-shimmer mb-2"
-      >
+      <motion.h1 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.3, delay: 0.1 }} className="text-5xl font-bold gold-shimmer mb-2">
         فوازير سيف
       </motion.h1>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="text-xl text-muted-foreground mb-12"
-      >
+      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-xl text-muted-foreground mb-12">
         امسح الرمز للانضمام
       </motion.p>
-
       <div className="flex flex-col items-center">
         <motion.div
           initial={{ scale: 0, rotate: -10 }}
@@ -426,58 +479,153 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, players }: { sessionId: 
         >
           <QRCodeSVG value={joinUrl} size={280} level="H" bgColor="#ffffff" fgColor="#1C1F2A" />
         </motion.div>
-
         <motion.div
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 2, repeat: Infinity }}
           className="bg-card/80 backdrop-blur rounded-2xl px-10 py-6 border border-[#CDB58B]/20"
         >
-          <motion.p
-            key={playerCount}
-            initial={{ scale: 1.5, color: "#e8d5a8" }}
-            animate={{ scale: 1, color: "#CDB58B" }}
-            className="text-6xl font-bold text-[#CDB58B]"
-            data-testid="text-player-count"
-          >
+          <motion.p key={playerCount} initial={{ scale: 1.5, color: "#e8d5a8" }} animate={{ scale: 1, color: "#CDB58B" }} className="text-6xl font-bold text-[#CDB58B]" data-testid="text-player-count">
             {playerCount}
           </motion.p>
           <p className="text-lg text-muted-foreground mt-1">لاعب انضموا</p>
         </motion.div>
       </div>
-
     </motion.div>
   );
 }
 
-function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCount, totalPlayers, contextText }: { question: QuestionForBigScreen; timeLeft: number; timerPercent: number; paused: boolean; answeredCount: number; totalPlayers: number; contextText?: string }) {
+function CircularTimer({ timeLeft, timerDuration, size = 120 }: { timeLeft: number; timerDuration: number; size?: number }) {
+  const radius = (size - 12) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = timerDuration > 0 ? timeLeft / timerDuration : 0;
+  const offset = circumference * (1 - progress);
+  const isLow = timeLeft <= 5;
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" className="text-muted/30" strokeWidth={6} />
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          fill="none"
+          stroke={isLow ? "#ef4444" : "#CDB58B"}
+          strokeWidth={6}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-100"
+        />
+      </svg>
+      <motion.span
+        className={`absolute font-bold tabular-nums ${isLow ? "text-red-400" : "text-[#CDB58B]"}`}
+        style={{ fontSize: size * 0.3 }}
+        animate={isLow && timeLeft > 0 ? { scale: [1, 1.15, 1] } : {}}
+        transition={{ duration: 0.5, repeat: Infinity }}
+        data-testid="text-timer"
+      >
+        {Math.ceil(timeLeft)}
+      </motion.span>
+    </div>
+  );
+}
+
+function PortraitOptionBlock({ label, index }: { label: string; index: number }) {
+  const shapes = [
+    <svg viewBox="0 0 60 60" className="w-full h-full"><polygon points="30,5 55,55 5,55" fill={OPTION_COLORS[0].fill} opacity={0.25} /><polygon points="30,12 48,48 12,48" fill={OPTION_COLORS[0].fill} opacity={0.4} /></svg>,
+    <svg viewBox="0 0 60 60" className="w-full h-full"><rect x="8" y="8" width="44" height="44" rx="4" fill={OPTION_COLORS[1].fill} opacity={0.25} /><rect x="14" y="14" width="32" height="32" rx="3" fill={OPTION_COLORS[1].fill} opacity={0.4} /></svg>,
+    <svg viewBox="0 0 60 60" className="w-full h-full"><circle cx="30" cy="30" r="26" fill={OPTION_COLORS[2].fill} opacity={0.25} /><circle cx="30" cy="30" r="18" fill={OPTION_COLORS[2].fill} opacity={0.4} /></svg>,
+    <svg viewBox="0 0 60 60" className="w-full h-full"><polygon points="30,2 58,30 30,58 2,30" fill={OPTION_COLORS[3].fill} opacity={0.25} /><polygon points="30,12 48,30 30,48 12,30" fill={OPTION_COLORS[3].fill} opacity={0.4} /></svg>,
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.1, duration: 0.3 }}
+      className={`relative rounded-2xl border-2 ${OPTION_COLORS[index].border} ${OPTION_COLORS[index].bg} flex items-center justify-center aspect-square`}
+      data-testid={`option-block-${label}`}
+    >
+      <div className="absolute inset-0 flex items-center justify-center opacity-60 p-3">
+        {shapes[index]}
+      </div>
+      <span className={`relative z-10 font-black ${OPTION_COLORS[index].text}`} style={{ fontSize: "clamp(32px, 6vw, 72px)" }}>
+        {label}
+      </span>
+    </motion.div>
+  );
+}
+
+function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCount, totalPlayers, contextText, isPortrait }: { question: QuestionForBigScreen; timeLeft: number; timerPercent: number; paused: boolean; answeredCount: number; totalPlayers: number; contextText?: string; isPortrait: boolean }) {
+  if (isPortrait) {
+    return (
+      <motion.div {...pFade} className="min-h-screen flex flex-col" style={{ padding: "5%" }} data-testid="question-screen">
+        <div style={{ maxWidth: "80%", margin: "0 auto" }} className="flex flex-col items-center flex-1 w-full">
+          <div className="flex items-center justify-center gap-3 mb-3 w-full">
+            <img src={logoUrl} alt="" className="h-8 object-contain opacity-70" />
+            <span className="ds-small text-muted-foreground font-semibold">فوازير سيف</span>
+          </div>
+
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-secondary text-muted-foreground mb-2">
+            سؤال {question.index + 1} من {question.totalQuestions}
+          </motion.span>
+
+          {question.isDoublePoints && (
+            <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: Infinity }} className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] ds-small font-semibold mb-3">
+              x2 نقاط مضاعفة
+            </motion.span>
+          )}
+
+          {contextText && (
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-small text-muted-foreground/70 text-center mb-3 italic" dir="auto">
+              📖 {contextText}
+            </motion.p>
+          )}
+
+          <div className="flex-1 flex items-center justify-center w-full my-4">
+            <motion.h2
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="ds-question font-bold text-center leading-relaxed"
+              dir="auto"
+              data-testid="text-question"
+            >
+              {question.text}
+            </motion.h2>
+          </div>
+
+          <div className="my-4">
+            <CircularTimer timeLeft={timeLeft} timerDuration={question.timeLimit} size={100} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full mb-4" style={{ maxWidth: "min(400px, 100%)" }}>
+            {OPTION_LABELS.map((label, i) => (
+              <PortraitOptionBlock key={label} label={label} index={i} />
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between w-full ds-small text-muted-foreground">
+            <span dir="ltr" data-testid="text-answered-count">{answeredCount}/{totalPlayers}</span>
+            {paused && <span className="text-[#CDB58B] font-semibold">متوقف</span>}
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="question-screen">
       <div className="flex items-center justify-between mb-6 gap-4">
-        <motion.span
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="text-muted-foreground text-lg"
-        >
+        <motion.span initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="text-muted-foreground text-lg">
           سؤال {question.index + 1} من {question.totalQuestions}
         </motion.span>
         {question.isDoublePoints && (
-          <motion.span
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 1, repeat: Infinity }}
-            className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] text-sm font-semibold"
-          >
+          <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: Infinity }} className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] text-sm font-semibold">
             x2 نقاط مضاعفة
           </motion.span>
         )}
         <div className="flex items-center gap-6">
-          <motion.span
-            key={answeredCount}
-            initial={{ scale: 1.3 }}
-            animate={{ scale: 1 }}
-            className="text-muted-foreground text-lg"
-            data-testid="text-answered-count"
-            dir="ltr"
-          >
+          <motion.span key={answeredCount} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-muted-foreground text-lg" data-testid="text-answered-count" dir="ltr">
             {answeredCount}/{totalPlayers}
           </motion.span>
           {paused && <span className="text-[#CDB58B] font-semibold">متوقف</span>}
@@ -491,7 +639,6 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
           </motion.span>
         </div>
       </div>
-
       <div className="w-full h-3 bg-muted rounded-full overflow-hidden mb-10">
         <motion.div
           className="h-full rounded-full"
@@ -502,17 +649,9 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
           transition={{ duration: 0.1 }}
         />
       </div>
-
       <div className="flex-1 flex flex-col items-center justify-center">
         {contextText && (
-          <motion.p
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-base lg:text-lg text-muted-foreground/70 text-center mb-4 max-w-3xl italic"
-            dir="auto"
-            data-testid="text-context-ref"
-          >
+          <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-base lg:text-lg text-muted-foreground/70 text-center mb-4 max-w-3xl italic" dir="auto" data-testid="text-context-ref">
             📖 {contextText}
           </motion.p>
         )}
@@ -531,7 +670,7 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
   );
 }
 
-function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: QuestionForBigScreen | null; }) {
+function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal; question: QuestionForBigScreen | null; isPortrait: boolean }) {
   const streakMap = new Map<string, number>();
   if (reveal.streakPlayers) {
     for (const s of reveal.streakPlayers) {
@@ -539,13 +678,102 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
     }
   }
   useEffect(() => {
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.5 },
-      colors: ["#CDB58B", "#22c55e", "#e8d5a8"],
-    });
+    confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 }, colors: ["#CDB58B", "#22c55e", "#e8d5a8"] });
   }, []);
+
+  const leaderboardSection = (
+    <div className={isPortrait ? "w-full" : ""}>
+      <h3 className={`font-semibold text-[#CDB58B] mb-4 ${isPortrait ? "ds-secondary text-center" : "text-lg"}`}>أفضل ٣</h3>
+      {reveal.leaderboard.slice(0, 3).map((entry, i) => {
+        const streak = streakMap.get(entry.name);
+        return (
+          <motion.div
+            key={entry.playerId}
+            initial={isPortrait ? { opacity: 0, scale: 0.95 } : { x: -20, opacity: 0 }}
+            animate={isPortrait ? { opacity: 1, scale: 1 } : { x: 0, opacity: 1 }}
+            transition={{ delay: 0.7 + i * 0.15, type: "spring" }}
+            className="flex items-center gap-4 mb-3"
+          >
+            <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}>{entry.rank}</span>
+            <span className="font-medium flex-1 flex items-center gap-2" dir="auto">
+              {entry.name}
+              {streak && streak >= 3 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 1.2 + i * 0.1, type: "spring", bounce: 0.6 }}
+                  className="px-2 py-0.5 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-full text-xs font-bold text-orange-400"
+                >
+                  🔥 {streak}x
+                </motion.span>
+              )}
+            </span>
+            {entry.previousRank !== null && entry.previousRank !== entry.rank && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 1 + i * 0.1, type: "spring" }}
+                className={`text-sm ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}
+              >
+                {entry.rank < entry.previousRank ? `+${entry.previousRank - entry.rank}` : `-${entry.rank - entry.previousRank}`}
+              </motion.span>
+            )}
+            <span className="font-bold text-[#CDB58B] tabular-nums" dir="ltr">{entry.score.toLocaleString()}</span>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+
+  if (isPortrait) {
+    return (
+      <motion.div {...pFade} className="min-h-screen flex flex-col overflow-y-auto" style={{ padding: "5%" }} data-testid="reveal-screen">
+        <div style={{ maxWidth: "80%", margin: "0 auto" }} className="w-full flex flex-col items-center">
+          <p className="ds-small text-muted-foreground mb-1">سؤال {reveal.questionIndex + 1}</p>
+          {question && <h2 className="ds-secondary font-bold text-center mb-4" dir="auto">{question.text}</h2>}
+
+          {reveal.isDoublePoints && (
+            <div className="text-center mb-3">
+              <span className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] ds-small font-semibold">x2 نقاط مضاعفة</span>
+            </div>
+          )}
+
+          <div className="w-full space-y-3 mb-6">
+            {OPTION_LABELS.map((label, i) => {
+              const isCorrect = label === reveal.correct;
+              return (
+                <motion.div
+                  key={label}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: isCorrect ? 1.02 : 1 }}
+                  transition={{ delay: i * 0.1, duration: 0.3 }}
+                  className={`rounded-xl flex items-center gap-3 px-4 py-3 border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-40"}`}
+                  data-testid={`reveal-option-${label}`}
+                >
+                  {isCorrect && (
+                    <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring" }} className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    </motion.span>
+                  )}
+                  <span className={`ds-small font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{reveal.options?.[i] || label}</span>
+                  <span className="ds-small font-bold tabular-nums text-muted-foreground" dir="ltr">{reveal.percentages[label]}%</span>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            className="bg-card/50 rounded-2xl p-5 border border-border/30 w-full"
+          >
+            {leaderboardSection}
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="reveal-screen">
@@ -553,13 +781,11 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
         <p className="text-muted-foreground text-lg mb-1">سؤال {reveal.questionIndex + 1}</p>
         {question && <h2 className="text-2xl font-bold" dir="auto">{question.text}</h2>}
       </div>
-
       {reveal.isDoublePoints && (
         <div className="text-center mb-4">
           <span className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] text-sm font-semibold">x2 نقاط مضاعفة</span>
         </div>
       )}
-
       <div className="grid grid-cols-2 gap-6 mb-10">
         {OPTION_LABELS.map((label, i) => {
           const isCorrect = label === reveal.correct;
@@ -568,57 +794,31 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
             <motion.div
               key={label}
               initial={{ scale: 0.8, opacity: 0, y: 20 }}
-              animate={{
-                scale: isCorrect ? 1.05 : 1,
-                opacity: 1,
-                y: 0,
-              }}
+              animate={{ scale: isCorrect ? 1.05 : 1, opacity: 1, y: 0 }}
               transition={{ delay: i * 0.15, type: "spring", bounce: 0.4 }}
               className={`h-24 rounded-2xl flex items-center gap-4 px-6 relative border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-40"}`}
               data-testid={`reveal-option-${label}`}
             >
               {isCorrect && (
-                <motion.span
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.6, type: "spring", bounce: 0.5 }}
-                  className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center shrink-0"
-                >
+                <motion.span initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.6, type: "spring", bounce: 0.5 }} className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center shrink-0">
                   <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                 </motion.span>
               )}
               <span className={`text-xl font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{optionText}</span>
-              <motion.span
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + i * 0.1 }}
-                className="text-lg font-bold tabular-nums text-muted-foreground"
-                dir="ltr"
-              >
+              <motion.span initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + i * 0.1 }} className="text-lg font-bold tabular-nums text-muted-foreground" dir="ltr">
                 {reveal.percentages[label]}%
               </motion.span>
             </motion.div>
           );
         })}
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1">
         {reveal.topFastest.length > 0 && (
-          <motion.div
-            initial={{ x: -40, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="bg-card/50 rounded-2xl p-6 border border-border/30"
-          >
+          <motion.div initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="bg-card/50 rounded-2xl p-6 border border-border/30">
             <h3 className="text-lg font-semibold text-[#CDB58B] mb-4">الأسرع إجابة</h3>
             {reveal.topFastest.map((p, i) => (
               <motion.div key={i} initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.7 + i * 0.2, type: "spring" }} className="flex items-center gap-4 mb-3">
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.8 + i * 0.2, type: "spring", bounce: 0.6 }}
-                  className="w-8 h-8 rounded-full bg-[#CDB58B]/20 flex items-center justify-center font-bold text-[#CDB58B] text-sm"
-                >
+                <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.8 + i * 0.2, type: "spring", bounce: 0.6 }} className="w-8 h-8 rounded-full bg-[#CDB58B]/20 flex items-center justify-center font-bold text-[#CDB58B] text-sm">
                   {i + 1}
                 </motion.span>
                 <span className="font-medium flex-1" dir="auto">{p.name}</span>
@@ -627,61 +827,73 @@ function RevealScreen({ reveal, question }: { reveal: QuestionReveal; question: 
             ))}
           </motion.div>
         )}
-
-        <motion.div
-          initial={{ x: 40, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="bg-card/50 rounded-2xl p-6 border border-border/30"
-        >
-          <h3 className="text-lg font-semibold text-[#CDB58B] mb-4">أفضل ٣</h3>
-          {reveal.leaderboard.slice(0, 3).map((entry, i) => {
-            const streak = streakMap.get(entry.name);
-            return (
-            <motion.div key={entry.playerId} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.7 + i * 0.15, type: "spring" }} className="flex items-center gap-4 mb-3">
-              <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}>{entry.rank}</span>
-              <span className="font-medium flex-1 flex items-center gap-2" dir="auto">
-                {entry.name}
-                {streak && streak >= 3 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 1.2 + i * 0.1, type: "spring", bounce: 0.6 }}
-                    className="px-2 py-0.5 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-full text-xs font-bold text-orange-400"
-                  >
-                    🔥 {streak}x
-                  </motion.span>
-                )}
-              </span>
-              {entry.previousRank !== null && entry.previousRank !== entry.rank && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 1 + i * 0.1, type: "spring" }}
-                  className={`text-sm ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}
-                >
-                  {entry.rank < entry.previousRank ? `+${entry.previousRank - entry.rank}` : `-${entry.rank - entry.previousRank}`}
-                </motion.span>
-              )}
-              <span className="font-bold text-[#CDB58B] tabular-nums" dir="ltr">{entry.score.toLocaleString()}</span>
-            </motion.div>
-            );
-          })}
+        <motion.div initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="bg-card/50 rounded-2xl p-6 border border-border/30">
+          {leaderboardSection}
         </motion.div>
       </div>
     </motion.div>
   );
 }
 
-function LeaderboardScreen({ leaderboard }: { leaderboard: LeaderboardEntry[] }) {
+function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: LeaderboardEntry[]; isPortrait: boolean }) {
+  const items = isPortrait ? leaderboard.slice(0, 5) : leaderboard.slice(0, 10);
+
+  if (isPortrait) {
+    return (
+      <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center" style={{ padding: "5%" }} data-testid="leaderboard-screen">
+        <div style={{ maxWidth: "80%" }} className="w-full flex flex-col items-center">
+          <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-question font-bold text-[#CDB58B] mb-8">
+            لوحة المتصدرين
+          </motion.h2>
+          <div className="w-full space-y-3">
+            {items.map((entry, i) => (
+              <motion.div
+                key={entry.playerId}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.12 }}
+                className={`flex items-center gap-4 p-4 rounded-xl ${i < 3 ? "bg-[#CDB58B]/10 border border-[#CDB58B]/20" : "bg-card/50 border border-border/20"}`}
+                data-testid={`leaderboard-entry-${i}`}
+              >
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: i * 0.12 + 0.2, type: "spring", bounce: 0.5 }}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white shadow-lg shadow-[#CDB58B]/30" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}
+                >
+                  {entry.rank}
+                </motion.span>
+                <span className="ds-secondary font-semibold flex-1" dir="auto">{entry.name}</span>
+                {entry.previousRank !== null && entry.previousRank !== entry.rank && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.12 + 0.3 }}
+                    className={`text-sm font-medium ${entry.rank < entry.previousRank ? "text-green-400" : "text-red-400"}`}
+                  >
+                    {entry.rank < entry.previousRank ? `▲${entry.previousRank - entry.rank}` : `▼${entry.rank - entry.previousRank}`}
+                  </motion.span>
+                )}
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: i * 0.12 + 0.3, type: "spring" }}
+                  className="ds-secondary font-bold text-[#CDB58B] tabular-nums"
+                  dir="ltr"
+                >
+                  {entry.score.toLocaleString()}
+                </motion.span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-12" data-testid="leaderboard-screen">
-      <motion.h2
-        initial={{ y: -30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", bounce: 0.4 }}
-        className="text-4xl font-bold text-[#CDB58B] mb-12"
-      >
+      <motion.h2 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="text-4xl font-bold text-[#CDB58B] mb-12">
         لوحة المتصدرين
       </motion.h2>
       <div className="w-full max-w-2xl">
@@ -729,106 +941,102 @@ function LeaderboardScreen({ leaderboard }: { leaderboard: LeaderboardEntry[] })
   );
 }
 
-function EndScreen({ stats }: { stats: FinalStats }) {
+function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boolean }) {
+  if (isPortrait) {
+    return (
+      <motion.div {...pFade} className="min-h-screen flex flex-col items-center overflow-y-auto" style={{ padding: "5%" }} data-testid="end-screen">
+        <div style={{ maxWidth: "80%" }} className="w-full flex flex-col items-center">
+          <motion.img initial={{ opacity: 0 }} animate={{ opacity: 0.8 }} src={logoUrl} alt="الشعار" className="h-10 mb-4" />
+          <motion.h2 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="ds-question font-bold text-[#CDB58B] mb-6">
+            انتهت اللعبة!
+          </motion.h2>
+
+          {stats.podium.length > 0 && (
+            <div className="flex items-end justify-center gap-4 mb-8 w-full">
+              {stats.podium.length > 1 && (
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.8 }} className="flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-xl font-bold text-gray-800 mb-2 shadow-lg">2</div>
+                  <p className="font-semibold ds-small mb-1 text-center" dir="auto">{stats.podium[1].name}</p>
+                  <p className="text-[#CDB58B] font-bold ds-small" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
+                  <motion.div initial={{ height: 0 }} animate={{ height: 72 }} transition={{ delay: 0.8, duration: 0.5 }} className="w-20 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-2" />
+                </motion.div>
+              )}
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }} className="flex flex-col items-center -mb-4">
+                <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }} className="w-24 h-24 rounded-full bg-gradient-to-br from-[#CDB58B] via-[#e8d5a8] to-[#a89160] flex items-center justify-center text-3xl font-bold text-white mb-2 shadow-2xl shadow-[#CDB58B]/40">
+                  1
+                </motion.div>
+                <p className="font-bold ds-secondary mb-1 text-center" dir="auto">{stats.podium[0].name}</p>
+                <p className="text-[#CDB58B] font-bold ds-secondary" dir="ltr">{stats.podium[0].score.toLocaleString()}</p>
+                <motion.div initial={{ height: 0 }} animate={{ height: 96 }} transition={{ delay: 0.5, duration: 0.6 }} className="w-24 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-2" />
+              </motion.div>
+              {stats.podium.length > 2 && (
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.1 }} className="flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-xl font-bold text-white mb-2 shadow-lg">3</div>
+                  <p className="font-semibold ds-small mb-1 text-center" dir="auto">{stats.podium[2].name}</p>
+                  <p className="text-[#CDB58B] font-bold ds-small" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
+                  <motion.div initial={{ height: 0 }} animate={{ height: 48 }} transition={{ delay: 1.1, duration: 0.4 }} className="w-20 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-2" />
+                </motion.div>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 w-full mb-6">
+            {stats.fastestCorrect && <StatCard title="أسرع إجابة صحيحة" value={`${(stats.fastestCorrect.timeMs / 1000).toFixed(1)} ثانية`} subtitle={stats.fastestCorrect.playerName} delay={0.3} isPortrait />}
+            {stats.bestStreak && <StatCard title="أفضل سلسلة" value={`${stats.bestStreak.streakLength} متتالية`} subtitle={stats.bestStreak.playerName} delay={0.4} isPortrait />}
+            {stats.hardestQuestion && <StatCard title="أصعب سؤال" value={`${stats.hardestQuestion.correctPercent}% صحيح`} subtitle={`سؤال ${stats.hardestQuestion.questionIndex + 1}`} delay={0.5} isPortrait />}
+            <StatCard title="متوسط وقت الإجابة" value={`${(stats.avgResponseTime / 1000).toFixed(1)} ثانية`} subtitle="جميع اللاعبين" delay={0.6} isPortrait />
+            <StatCard title="نسبة المشاركة" value={`${stats.participationRate}%`} subtitle={`${stats.totalPlayers} لاعب`} delay={0.7} isPortrait />
+            <StatCard title="عدد الأسئلة" value={`${stats.totalQuestions}`} subtitle="سؤال تم لعبه" delay={0.8} isPortrait />
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen flex flex-col items-center p-8 lg:p-12 overflow-y-auto" data-testid="end-screen">
-      <motion.img
-        initial={{ y: -40, opacity: 0 }}
-        animate={{ y: 0, opacity: 0.8 }}
-        transition={{ type: "spring", bounce: 0.4 }}
-        src={logoUrl}
-        alt="الشعار"
-        className="h-12 mb-6"
-      />
-      <motion.h2
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", bounce: 0.5 }}
-        className="text-4xl font-bold text-[#CDB58B] mb-4"
-      >
+      <motion.img initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 0.8 }} transition={{ type: "spring", bounce: 0.4 }} src={logoUrl} alt="الشعار" className="h-12 mb-6" />
+      <motion.h2 initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="text-4xl font-bold text-[#CDB58B] mb-4">
         انتهت اللعبة!
       </motion.h2>
-
       {stats.podium.length > 0 && (
         <div className="flex items-end justify-center gap-6 mb-12 mt-8">
           {stats.podium.length > 1 && (
             <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
-              <motion.div
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-                className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-2xl font-bold text-gray-800 mb-3 shadow-lg"
-              >
+              <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 1 }} className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-2xl font-bold text-gray-800 mb-3 shadow-lg">
                 2
               </motion.div>
               <p className="font-semibold text-lg mb-1" dir="auto">{stats.podium[1].name}</p>
               <p className="text-[#CDB58B] font-bold" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: 96 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
-                className="w-24 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-3"
-              />
+              <motion.div initial={{ height: 0 }} animate={{ height: 96 }} transition={{ delay: 0.8, duration: 0.5 }} className="w-24 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-3" />
             </motion.div>
           )}
-
           <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, type: "spring", bounce: 0.4 }} className="flex flex-col items-center -mb-4">
-            <motion.div
-              animate={{ scale: [1, 1.08, 1], rotate: [0, 2, -2, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-28 h-28 rounded-full bg-gradient-to-br from-[#CDB58B] via-[#e8d5a8] to-[#a89160] flex items-center justify-center text-4xl font-bold text-white mb-3 shadow-2xl shadow-[#CDB58B]/40"
-            >
+            <motion.div animate={{ scale: [1, 1.08, 1], rotate: [0, 2, -2, 0] }} transition={{ duration: 2, repeat: Infinity }} className="w-28 h-28 rounded-full bg-gradient-to-br from-[#CDB58B] via-[#e8d5a8] to-[#a89160] flex items-center justify-center text-4xl font-bold text-white mb-3 shadow-2xl shadow-[#CDB58B]/40">
               1
             </motion.div>
             <p className="font-bold text-2xl mb-1" dir="auto">{stats.podium[0].name}</p>
-            <motion.p
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.7, type: "spring" }}
-              className="text-[#CDB58B] font-bold text-xl"
-              dir="ltr"
-            >
+            <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.7, type: "spring" }} className="text-[#CDB58B] font-bold text-xl" dir="ltr">
               {stats.podium[0].score.toLocaleString()}
             </motion.p>
-            <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: 128 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-              className="w-28 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-3"
-            />
+            <motion.div initial={{ height: 0 }} animate={{ height: 128 }} transition={{ delay: 0.5, duration: 0.6 }} className="w-28 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-3" />
           </motion.div>
-
           {stats.podium.length > 2 && (
             <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 1.1, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
-              <motion.div
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
-                className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg"
-              >
+              <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 1.5 }} className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg">
                 3
               </motion.div>
               <p className="font-semibold text-lg mb-1" dir="auto">{stats.podium[2].name}</p>
               <p className="text-[#CDB58B] font-bold" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: 64 }}
-                transition={{ delay: 1.1, duration: 0.4 }}
-                className="w-24 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-3"
-              />
+              <motion.div initial={{ height: 0 }} animate={{ height: 64 }} transition={{ delay: 1.1, duration: 0.4 }} className="w-24 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-3" />
             </motion.div>
           )}
         </div>
       )}
-
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl mb-8">
-        {stats.fastestCorrect && (
-          <StatCard title="أسرع إجابة صحيحة" value={`${(stats.fastestCorrect.timeMs / 1000).toFixed(1)} ثانية`} subtitle={stats.fastestCorrect.playerName} delay={0.3} />
-        )}
-        {stats.bestStreak && (
-          <StatCard title="أفضل سلسلة" value={`${stats.bestStreak.streakLength} متتالية`} subtitle={stats.bestStreak.playerName} delay={0.4} />
-        )}
-        {stats.hardestQuestion && (
-          <StatCard title="أصعب سؤال" value={`${stats.hardestQuestion.correctPercent}% صحيح`} subtitle={`سؤال ${stats.hardestQuestion.questionIndex + 1}`} delay={0.5} />
-        )}
+        {stats.fastestCorrect && <StatCard title="أسرع إجابة صحيحة" value={`${(stats.fastestCorrect.timeMs / 1000).toFixed(1)} ثانية`} subtitle={stats.fastestCorrect.playerName} delay={0.3} />}
+        {stats.bestStreak && <StatCard title="أفضل سلسلة" value={`${stats.bestStreak.streakLength} متتالية`} subtitle={stats.bestStreak.playerName} delay={0.4} />}
+        {stats.hardestQuestion && <StatCard title="أصعب سؤال" value={`${stats.hardestQuestion.correctPercent}% صحيح`} subtitle={`سؤال ${stats.hardestQuestion.questionIndex + 1}`} delay={0.5} />}
         <StatCard title="متوسط وقت الإجابة" value={`${(stats.avgResponseTime / 1000).toFixed(1)} ثانية`} subtitle="جميع اللاعبين" delay={0.6} />
         <StatCard title="نسبة المشاركة" value={`${stats.participationRate}%`} subtitle={`${stats.totalPlayers} لاعب`} delay={0.7} />
         <StatCard title="عدد الأسئلة" value={`${stats.totalQuestions}`} subtitle="سؤال تم لعبه" delay={0.8} />
@@ -837,25 +1045,24 @@ function EndScreen({ stats }: { stats: FinalStats }) {
   );
 }
 
-function StatCard({ title, value, subtitle, delay = 0 }: { title: string; value: string; subtitle: string; delay?: number }) {
+function StatCard({ title, value, subtitle, delay = 0, isPortrait = false }: { title: string; value: string; subtitle: string; delay?: number; isPortrait?: boolean }) {
   return (
     <motion.div
-      initial={{ y: 30, opacity: 0, scale: 0.9 }}
-      animate={{ y: 0, opacity: 1, scale: 1 }}
+      initial={isPortrait ? { opacity: 0, scale: 0.95 } : { y: 30, opacity: 0, scale: 0.9 }}
+      animate={isPortrait ? { opacity: 1, scale: 1 } : { y: 0, opacity: 1, scale: 1 }}
       transition={{ delay, type: "spring", bounce: 0.3 }}
-      whileHover={{ scale: 1.03 }}
-      className="bg-card/60 rounded-xl p-5 border border-border/30 text-center"
+      className="bg-card/60 rounded-xl p-4 border border-border/30 text-center"
     >
-      <p className="text-sm text-muted-foreground mb-2">{title}</p>
+      <p className={`text-muted-foreground mb-1 ${isPortrait ? "ds-small" : "text-sm"}`}>{title}</p>
       <motion.p
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: delay + 0.2, type: "spring", bounce: 0.5 }}
-        className="text-2xl font-bold text-[#CDB58B]"
+        className={`font-bold text-[#CDB58B] ${isPortrait ? "ds-secondary" : "text-2xl"}`}
       >
         {value}
       </motion.p>
-      <p className="text-sm text-muted-foreground mt-1" dir="auto">{subtitle}</p>
+      <p className={`text-muted-foreground mt-1 ${isPortrait ? "ds-small" : "text-sm"}`} dir="auto">{subtitle}</p>
     </motion.div>
   );
 }

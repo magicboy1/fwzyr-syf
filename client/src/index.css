@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+.ds-question {
+  font-size: clamp(28px, 4.5vw, 64px);
+  line-height: 1.3;
+}
+.ds-secondary {
+  font-size: clamp(16px, 2.2vw, 28px);
+  line-height: 1.4;
+}
+.ds-small {
+  font-size: clamp(12px, 1.5vw, 18px);
+  line-height: 1.4;
+}
+
 /* LIGHT MODE */
 :root {
   --button-outline: rgba(0,0,0, .10);
