@@ -171,6 +171,10 @@ export async function registerRoutes(
     res.json(questionBank);
   });
 
+  app.get("/api/health", (_req, res) => {
+    res.status(200).send("OK");
+  });
+
   app.get("/api/time", (_req, res) => {
     res.json({ serverTime: Date.now() });
   });

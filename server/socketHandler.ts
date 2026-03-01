@@ -32,11 +32,14 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
   const io = new SocketServer(httpServer, {
     cors: { origin: "*" },
     path: "/socket.io",
-    transports: ["websocket", "polling"],
+    transports: ["websocket"],
+    allowUpgrades: false,
     pingInterval: 25000,
     pingTimeout: 20000,
-    maxHttpBufferSize: 1e6,
+    maxHttpBufferSize: 1e5,
     perMessageDeflate: false,
+    httpCompression: false,
+    connectTimeout: 10000,
   });
 
   io.on("connection", (socket: Socket) => {
