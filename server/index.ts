@@ -5,6 +5,7 @@ import { createServer } from "http";
 
 const app = express();
 const httpServer = createServer(app);
+httpServer.maxConnections = 1000;
 
 declare module "http" {
   interface IncomingMessage {

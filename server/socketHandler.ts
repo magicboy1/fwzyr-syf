@@ -33,6 +33,10 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     cors: { origin: "*" },
     path: "/socket.io",
     transports: ["websocket", "polling"],
+    pingInterval: 25000,
+    pingTimeout: 20000,
+    maxHttpBufferSize: 1e6,
+    perMessageDeflate: false,
   });
 
   io.on("connection", (socket: Socket) => {
@@ -120,9 +124,13 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       socket.join(`session:${session.id}`);
       socket.join(`player:${player.id}`);
 
-      io.to(`session:${session.id}`).emit("game:playerJoined", {
+      const joinData = {
         player: { id: player.id, name: player.name },
         playerCount: getPlayerCount(session.id),
+      };
+      io.to(`display:${session.id}`).emit("game:playerJoined", joinData);
+      io.to(`host:${session.id}`).emit("game:playerJoined", {
+        ...joinData,
         players: getPlayerList(session.id),
       });
 
