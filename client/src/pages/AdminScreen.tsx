@@ -5,8 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Question } from "@shared/schema";
-import { Plus, Trash2, Upload, Download, ArrowRight, Edit2, Save, X } from "lucide-react";
+import { Plus, Trash2, Upload, Download, ArrowRight, Edit2, Save, X, Trophy, Phone } from "lucide-react";
 import { Link } from "wouter";
+
+interface SessionWinners {
+  sessionId: string;
+  phase: string;
+  playerCount: number;
+  winners: { rank: number; name: string; phone: string; score: number }[];
+}
 
 interface EditState {
   context: string;
@@ -123,6 +130,7 @@ function isFormValid(s: EditState) {
 export default function AdminScreen() {
   const queryClient = useQueryClient();
   const { data: questions = [], isLoading } = useQuery<Question[]>({ queryKey: ["/api/questions"] });
+  const { data: sessionsData = [] } = useQuery<SessionWinners[]>({ queryKey: ["/api/sessions/winners"] });
   const [showNewForm, setShowNewForm] = useState(false);
   const [newState, setNewState] = useState<EditState>({ ...emptyState });
   const [editId, setEditId] = useState<string | null>(null);
@@ -240,6 +248,40 @@ export default function AdminScreen() {
             </Button>
           </div>
         </div>
+
+        {sessionsData.length > 0 && sessionsData.some(s => s.winners.length > 0) && (
+          <div className="mb-6 space-y-4">
+            <h2 className="text-xl font-bold text-[#CDB58B] flex items-center gap-2">
+              <Trophy className="w-5 h-5" /> الفائزون
+            </h2>
+            {sessionsData.filter(s => s.winners.length > 0).map((session) => (
+              <div key={session.sessionId} className="bg-card rounded-xl p-4 border border-[#CDB58B]/20">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs text-muted-foreground" dir="ltr">{session.sessionId.slice(0, 8)}...</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${session.phase === "END" ? "bg-green-500/15 text-green-400" : "bg-yellow-500/15 text-yellow-400"}`}>
+                    {session.phase === "END" ? "انتهت" : "جارية"} — {session.playerCount} لاعب
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {session.winners.map((w) => (
+                    <div key={w.rank} className={`flex items-center gap-3 p-3 rounded-lg ${w.rank === 1 ? "bg-[#CDB58B]/10 border border-[#CDB58B]/20" : "bg-muted/30"}`} data-testid={`winner-entry-${w.rank}`}>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${w.rank === 1 ? "bg-[#CDB58B] text-black" : w.rank === 2 ? "bg-gray-400 text-white" : "bg-orange-500 text-white"}`}>
+                        {w.rank}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-semibold" dir="auto">{w.name}</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1" dir="ltr">
+                          <Phone className="w-3 h-3" /> {w.phone || "—"}
+                        </p>
+                      </div>
+                      <span className="font-bold text-[#CDB58B] tabular-nums" dir="ltr">{w.score.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mb-4 p-4 bg-card/50 rounded-xl border border-border/30 text-sm text-muted-foreground">
           <p className="font-medium text-foreground/80 mb-1">صيغة ملف CSV</p>

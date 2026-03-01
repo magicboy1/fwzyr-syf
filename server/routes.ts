@@ -7,6 +7,7 @@ import type { Question } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
+import { getAllSessions, getWinnersWithPhone } from "./gameEngine";
 
 const QUESTIONS_FILE = path.join(process.cwd(), "data", "questions.json");
 
@@ -172,6 +173,19 @@ export async function registerRoutes(
 
   app.get("/api/time", (_req, res) => {
     res.json({ serverTime: Date.now() });
+  });
+
+  app.get("/api/sessions/winners", requireAdmin, (_req, res) => {
+    const allSessions = getAllSessions();
+    const results = allSessions
+      .filter((s) => s.phase === "END" || Object.keys(s.players).length > 0)
+      .map((s) => ({
+        sessionId: s.id,
+        phase: s.phase,
+        playerCount: Object.keys(s.players).length,
+        winners: getWinnersWithPhone(s.id),
+      }));
+    res.json(results);
   });
 
   return httpServer;

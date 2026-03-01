@@ -553,3 +553,15 @@ export function deleteSession(sessionId: string): boolean {
   sessions.delete(sessionId);
   return true;
 }
+
+export function getWinnersWithPhone(sessionId: string): { rank: number; name: string; phone: string; score: number }[] {
+  const session = sessions.get(sessionId);
+  if (!session) return [];
+  const sorted = Object.values(session.players).sort((a, b) => b.score - a.score);
+  return sorted.slice(0, 3).map((p, i) => ({
+    rank: i + 1,
+    name: p.name,
+    phone: p.phone,
+    score: p.score,
+  }));
+}
