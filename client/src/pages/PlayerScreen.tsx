@@ -199,11 +199,11 @@ export default function PlayerScreen() {
     const trimmed = name.trim();
     const parts = trimmed.split(/\s+/);
     if (!trimmed) {
-      setError("Please enter your full name");
+      setError("Please enter your name");
       return;
     }
-    if (parts.length < 3) {
-      setError("Please enter your full name (first, middle, last)");
+    if (parts.length < 2) {
+      setError("Please enter your first and last name");
       return;
     }
     if (!phone.trim()) {
@@ -309,7 +309,7 @@ export default function PlayerScreen() {
             >
               <Input
                 type="text"
-                placeholder="Full name"
+                placeholder="First and last name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="text-center text-lg h-14 bg-card border-border/50"
