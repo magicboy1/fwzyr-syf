@@ -459,7 +459,7 @@ export default function PlayerScreen() {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleAnswer(label)}
                   disabled={!!selectedAnswer}
-                  className={`w-full py-5 px-5 rounded-xl border text-right flex items-center gap-4 transition-colors ${selectedAnswer === label ? "bg-gold/20 border-gold/50 text-foreground" : selectedAnswer ? "bg-card/40 border-border/20 text-muted-foreground opacity-50" : "bg-card border-border/30 text-foreground active:bg-gold/10"}`}
+                  className={`w-full py-5 px-5 rounded-xl border text-left flex items-center gap-4 transition-colors ${selectedAnswer === label ? "bg-gold/20 border-gold/50 text-foreground" : selectedAnswer ? "bg-card/40 border-border/20 text-muted-foreground opacity-50" : "bg-card border-border/30 text-foreground active:bg-gold/10"}`}
                   dir="auto"
                   data-testid={`button-answer-${label}`}
                 >

@@ -943,56 +943,34 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen flex flex-col items-center p-8 lg:p-12 overflow-y-auto" data-testid="end-screen">
-      <motion.img initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 0.8 }} transition={{ type: "spring", bounce: 0.4 }} src={BRAND.logo} alt="Logo" style={{ height: "clamp(48px, 4vw, 96px)" }} className="mb-6" />
-      <motion.h2 initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="ds-question font-bold text-gold mb-4">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-screen flex flex-col items-center p-6 lg:p-8 overflow-hidden" data-testid="end-screen">
+      <motion.img initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 0.8 }} transition={{ type: "spring", bounce: 0.4 }} src={BRAND.logo} alt="Logo" style={{ height: "clamp(36px, 3vw, 64px)" }} className="mb-2" />
+      <motion.h2 initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="ds-secondary font-bold text-gold mb-3">
         Game Over!
       </motion.h2>
-      {stats.podium.length > 0 && (
-        <div className="flex items-end justify-center mb-12 mt-8" style={{ gap: "clamp(24px, 3vw, 64px)" }}>
-          {stats.podium.length > 1 && (
-            <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
-              <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 1 }} className="rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center font-bold text-gray-800 mb-3 shadow-lg ds-secondary" style={{ width: "clamp(64px, 5vw, 120px)", height: "clamp(64px, 5vw, 120px)" }}>
-                2
-              </motion.div>
-              <p className="font-semibold ds-secondary mb-1" dir="auto">{stats.podium[1].name}</p>
-              <p className="text-gold font-bold ds-small" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
-              <motion.div initial={{ height: 0 }} animate={{ height: "clamp(80px, 8vw, 160px)" }} transition={{ delay: 0.8, duration: 0.5 }} className="bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-3" style={{ width: "clamp(96px, 7vw, 160px)" }} />
-            </motion.div>
-          )}
-          <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
-            <motion.div animate={{ scale: [1, 1.08, 1], rotate: [0, 2, -2, 0] }} transition={{ duration: 2, repeat: Infinity }} className="rounded-full bg-gradient-to-br from-gold via-gold-light to-gold-dark flex items-center justify-center font-bold text-white mb-3 shadow-2xl shadow-gold/40 ds-question" style={{ width: "clamp(96px, 7vw, 160px)", height: "clamp(96px, 7vw, 160px)" }}>
-              1
-            </motion.div>
-            <p className="font-bold ds-secondary mb-1" dir="auto">{stats.podium[0].name}</p>
-            <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.7, type: "spring" }} className="text-gold font-bold ds-secondary" dir="ltr">
-              {stats.podium[0].score.toLocaleString()}
-            </motion.p>
-            <motion.div initial={{ height: 0 }} animate={{ height: "clamp(112px, 10vw, 220px)" }} transition={{ delay: 0.5, duration: 0.6 }} className="bg-gradient-to-t from-gold/20 to-gold/5 rounded-t-lg mt-3" style={{ width: "clamp(112px, 8vw, 180px)" }} />
-          </motion.div>
-          {stats.podium.length > 2 && (
-            <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 1.1, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
-              <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 1.5 }} className="rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center font-bold text-white mb-3 shadow-lg ds-secondary" style={{ width: "clamp(64px, 5vw, 120px)", height: "clamp(64px, 5vw, 120px)" }}>
-                3
-              </motion.div>
-              <p className="font-semibold ds-secondary mb-1" dir="auto">{stats.podium[2].name}</p>
-              <p className="text-gold font-bold ds-small" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
-              <motion.div initial={{ height: 0 }} animate={{ height: "clamp(56px, 5vw, 110px)" }} transition={{ delay: 1.1, duration: 0.4 }} className="bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-3" style={{ width: "clamp(96px, 7vw, 160px)" }} />
-            </motion.div>
-          )}
-        </div>
+      {stats.winner && (
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.3, type: "spring", bounce: 0.4 }}
+          className="flex items-center gap-3 mb-4 bg-card/60 border border-gold/30 rounded-2xl px-5 py-2"
+        >
+          <motion.span animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }} className="rounded-full bg-gradient-to-br from-gold via-gold-light to-gold-dark text-white font-bold flex items-center justify-center shrink-0" style={{ width: "clamp(32px, 2.6vw, 52px)", height: "clamp(32px, 2.6vw, 52px)" }}>1</motion.span>
+          <span className="font-bold ds-secondary" dir="auto">{stats.winner.name}</span>
+          <span className="text-gold font-bold ds-secondary" dir="ltr">{stats.winner.score.toLocaleString()}</span>
+        </motion.div>
       )}
-      <RegionWinners stats={stats} isPortrait={false} />
+      <RegionWinners stats={stats} isPortrait={false} fill />
     </motion.div>
   );
 }
 
-function RegionWinners({ stats, isPortrait }: { stats: FinalStats; isPortrait: boolean }) {
+function RegionWinners({ stats, isPortrait, fill = false }: { stats: FinalStats; isPortrait: boolean; fill?: boolean }) {
   const regions = stats.regionResults || [];
   if (regions.length === 0) return null;
   return (
     <div
-      className={`grid w-full gap-4 ${isPortrait ? "grid-cols-1" : "grid-cols-3"}`}
+      className={`grid w-full gap-4 ${isPortrait ? "grid-cols-1" : "grid-cols-3"} ${fill ? "flex-1 min-h-0" : ""}`}
       style={{ maxWidth: isPortrait ? "100%" : "94%" }}
       data-testid="region-winners"
     >
@@ -1002,17 +980,20 @@ function RegionWinners({ stats, isPortrait }: { stats: FinalStats; isPortrait: b
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 + ri * 0.15, type: "spring", bounce: 0.3 }}
-          className="bg-card/60 rounded-2xl border border-gold/25 flex flex-col overflow-hidden"
+          className="bg-card/60 rounded-2xl border border-gold/25 flex flex-col overflow-hidden min-h-0"
         >
-          <div className="text-center px-3 py-3 bg-gold/10 border-b border-gold/25">
+          <div className="text-center px-3 py-2 bg-gold/10 border-b border-gold/25 shrink-0">
             <h3 className="ds-secondary font-bold text-gold leading-tight">{r.label}</h3>
             <p className="ds-small text-gold-accent font-semibold">{r.winners.length} of {r.winnerCount} winners</p>
           </div>
-          <ol className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5" style={{ maxHeight: isPortrait ? "40vh" : "62vh" }}>
+          <ol
+            className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1"
+            style={fill ? undefined : { maxHeight: isPortrait ? "40vh" : "62vh" }}
+          >
             {r.winners.map((w, i) => (
-              <li key={w.playerId} className="flex items-center gap-2 rounded-lg px-2 py-1 odd:bg-white/[0.03]">
-                <span className={`w-7 text-center font-bold ds-small ${i < 3 ? "text-gold-accent" : "text-muted-foreground"}`} dir="ltr">{i + 1}</span>
-                <span className="flex-1 truncate font-medium" dir="auto">{w.name}</span>
+              <li key={w.playerId} className="flex items-center gap-2 rounded-lg px-2 py-0.5 odd:bg-white/[0.03]">
+                <span className={`w-6 text-center font-bold ds-small ${i < 3 ? "text-gold-accent" : "text-muted-foreground"}`} dir="ltr">{i + 1}</span>
+                <span className="flex-1 truncate font-medium ds-small" dir="auto">{w.name}</span>
                 <span className="text-gold font-bold ds-small" dir="ltr">{w.score.toLocaleString()}</span>
               </li>
             ))}

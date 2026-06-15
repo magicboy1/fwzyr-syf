@@ -11,11 +11,12 @@ import { io } from "socket.io-client";
 const URL = process.argv[3] || process.env.URL || "http://localhost:5052";
 const N = parseInt(process.argv[2] || process.env.PLAYERS || "300", 10);
 const QUESTIONS_COUNT = 5;
-const BATCH = 50; // connect this many sockets at a time
-const BATCH_DELAY_MS = 150;
+const BATCH = parseInt(process.env.BATCH || "50", 10); // connect this many sockets at a time
+const BATCH_DELAY_MS = parseInt(process.env.BATCH_DELAY || "150", 10);
+const ACK_TIMEOUT = parseInt(process.env.ACK_TIMEOUT || "10000", 10);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const ack = (sock, event, data, timeout = 10000) =>
+const ack = (sock, event, data, timeout = ACK_TIMEOUT) =>
   new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(`ack timeout: ${event}`)), timeout);
     sock.emit(event, data, (res) => { clearTimeout(t); resolve(res); });
@@ -75,7 +76,7 @@ async function main() {
           await new Promise((res, rej) => {
             sock.on("connect", res);
             sock.on("connect_error", rej);
-            setTimeout(() => rej(new Error("timeout")), 10000);
+            setTimeout(() => rej(new Error("timeout")), ACK_TIMEOUT);
           });
           const r = await ack(sock, "player:join", {
             sessionId, name: `Player_${k}`, phone: "",
