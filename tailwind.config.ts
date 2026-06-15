@@ -31,6 +31,13 @@ export default {
           foreground: "hsl(var(--primary-foreground) / <alpha-value>)",
           border: "var(--primary-border)",
         },
+        // Brand accent (gold). Driven by the --brand-* variables in index.css.
+        gold: {
+          DEFAULT: "hsl(var(--brand-gold) / <alpha-value>)",
+          light: "hsl(var(--brand-gold-light) / <alpha-value>)",
+          dark: "hsl(var(--brand-gold-dark) / <alpha-value>)",
+          accent: "hsl(var(--brand-gold-accent) / <alpha-value>)",
+        },
         secondary: {
           DEFAULT: "hsl(var(--secondary) / <alpha-value>)",
           foreground: "hsl(var(--secondary-foreground) / <alpha-value>)",

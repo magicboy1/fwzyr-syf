@@ -71,12 +71,22 @@ export default function HostScreen() {
 
     socket.on("game:playerJoined", (data) => {
       setPlayerCount(data.playerCount);
-      setPlayers(data.players);
+      if (data.player) {
+        setPlayers((prev) =>
+          prev.some((p) => p.id === data.player.id) ? prev : [...prev, data.player]
+        );
+      } else if (data.players) {
+        setPlayers(data.players);
+      }
     });
 
     socket.on("game:playerLeft", (data) => {
       setPlayerCount(data.playerCount);
-      setPlayers(data.players);
+      if (data.players) {
+        setPlayers(data.players);
+      } else if (data.playerId) {
+        setPlayers((prev) => prev.filter((p) => p.id !== data.playerId));
+      }
     });
 
     socket.on("game:context", (data) => {
@@ -152,26 +162,26 @@ export default function HostScreen() {
 
   if (!connected) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6" dir="rtl" data-testid="host-setup">
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6" dir="ltr" data-testid="host-setup">
         <Link href="/">
           <Button variant="ghost" size="sm" className="absolute top-4 right-4" data-testid="button-back-home">
-            <ArrowRight className="w-4 h-4 ml-1" /> الرئيسية
+            <ArrowRight className="w-4 h-4 ml-1" /> Home
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold text-[#CDB58B] mb-2">لوحة تحكم المضيف</h1>
-        <p className="text-muted-foreground mb-8">إنشاء جلسة مسابقة جديدة</p>
+        <h1 className="text-3xl font-bold text-gold mb-2">Host Control Panel</h1>
+        <p className="text-muted-foreground mb-8">Create a new quiz session</p>
 
         <div className="w-full max-w-md space-y-6">
           <div className="bg-card rounded-xl p-6 border border-border/30">
-            <p className="text-sm text-muted-foreground mb-2">الأسئلة المحملة</p>
-            <p className="text-3xl font-bold text-[#CDB58B]">{questions.length}</p>
+            <p className="text-sm text-muted-foreground mb-2">Loaded questions</p>
+            <p className="text-3xl font-bold text-gold">{questions.length}</p>
             <Button variant="secondary" className="mt-3" onClick={() => navigate("/admin")} data-testid="button-manage-questions">
-              إدارة الأسئلة
+              Manage questions
             </Button>
           </div>
 
           <div className="bg-card rounded-xl p-6 border border-border/30">
-            <label className="text-sm text-muted-foreground mb-2 block">الوقت لكل سؤال (ثواني)</label>
+            <label className="text-sm text-muted-foreground mb-2 block">Time per question (seconds)</label>
             <Input
               type="number"
               value={timeLimit}
@@ -185,7 +195,7 @@ export default function HostScreen() {
           </div>
 
           <Button onClick={createSession} disabled={questions.length === 0 || loading} className="w-full h-14 text-lg font-semibold" data-testid="button-create-session">
-            {loading ? "جاري الإنشاء..." : "إنشاء الجلسة"}
+            {loading ? "Creating..." : "Create session"}
           </Button>
         </div>
       </div>
@@ -193,48 +203,48 @@ export default function HostScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6" dir="rtl" data-testid="host-panel">
+    <div className="min-h-screen bg-background text-foreground p-6" dir="ltr" data-testid="host-panel">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <Link href="/">
               <Button variant="ghost" size="icon" data-testid="button-back-home-panel"><ArrowRight className="w-5 h-5" /></Button>
             </Link>
-            <h1 className="text-xl font-bold text-[#CDB58B]">لوحة المضيف</h1>
+            <h1 className="text-xl font-bold text-gold">Host Panel</h1>
           </div>
           <div className="text-left">
-            <p className="text-sm text-muted-foreground">المرحلة</p>
-            <p className="font-semibold text-[#CDB58B]">
-              {phase === "LOBBY" ? "الانتظار" : phase === "QUESTION" ? "سؤال" : phase === "REVEAL" ? "النتائج" : phase === "LEADERBOARD" ? "الترتيب" : "انتهت"}
+            <p className="text-sm text-muted-foreground">Phase</p>
+            <p className="font-semibold text-gold">
+              {phase === "LOBBY" ? "Lobby" : phase === "QUESTION" ? "Question" : phase === "REVEAL" ? "Reveal" : phase === "LEADERBOARD" ? "Leaderboard" : "Ended"}
             </p>
           </div>
         </div>
 
         <div className="bg-card rounded-xl p-4 border border-border/30 mb-6">
-          <p className="text-sm text-muted-foreground mb-2">الشاشة الرئيسية</p>
+          <p className="text-sm text-muted-foreground mb-2">Main Screen</p>
           <Button onClick={openDisplay} variant="secondary" className="w-full" data-testid="button-open-display">
-            فتح الشاشة الرئيسية
+            Open Main Screen
           </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
           <motion.div layout className="bg-card rounded-xl p-4 border border-border/30 text-center">
             <Users className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-            <motion.p key={playerCount} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-2xl font-bold text-[#CDB58B]" data-testid="text-host-player-count">{playerCount}</motion.p>
-            <p className="text-xs text-muted-foreground">لاعبين</p>
+            <motion.p key={playerCount} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-2xl font-bold text-gold" data-testid="text-host-player-count">{playerCount}</motion.p>
+            <p className="text-xs text-muted-foreground">Players</p>
           </motion.div>
           <motion.div layout className="bg-card rounded-xl p-4 border border-border/30 text-center">
-            <motion.p key={currentQ} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-2xl font-bold text-[#CDB58B]" dir="ltr">{currentQ >= 0 ? `${currentQ + 1}/${totalQ}` : "-"}</motion.p>
-            <p className="text-xs text-muted-foreground">السؤال</p>
+            <motion.p key={currentQ} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-2xl font-bold text-gold" dir="ltr">{currentQ >= 0 ? `${currentQ + 1}/${totalQ}` : "-"}</motion.p>
+            <p className="text-xs text-muted-foreground">Question</p>
           </motion.div>
         </div>
 
         {phase === "QUESTION" && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-xl p-4 border border-border/30 mb-6">
-            <p className="text-sm text-muted-foreground mb-1">الإجابات المستلمة</p>
-            <motion.p key={answeredCount} initial={{ scale: 1.2 }} animate={{ scale: 1 }} className="text-xl font-bold text-[#CDB58B]" dir="ltr">{answeredCount} / {playerCount}</motion.p>
+            <p className="text-sm text-muted-foreground mb-1">Answers received</p>
+            <motion.p key={answeredCount} initial={{ scale: 1.2 }} animate={{ scale: 1 }} className="text-xl font-bold text-gold" dir="ltr">{answeredCount} / {playerCount}</motion.p>
             <div className="h-2 bg-muted rounded-full mt-2 overflow-hidden">
-              <motion.div className="h-full bg-[#CDB58B] rounded-full" animate={{ width: `${playerCount > 0 ? (answeredCount / playerCount) * 100 : 0}%` }} transition={{ type: "spring", bounce: 0.3 }} />
+              <motion.div className="h-full bg-gold rounded-full" animate={{ width: `${playerCount > 0 ? (answeredCount / playerCount) * 100 : 0}%` }} transition={{ type: "spring", bounce: 0.3 }} />
             </div>
           </motion.div>
         )}
@@ -242,7 +252,7 @@ export default function HostScreen() {
         <div className="space-y-3 mb-8">
           {phase === "LOBBY" && (
             <Button onClick={() => { handleStart(); handleNext(); }} className="w-full h-12" disabled={playerCount === 0} data-testid="button-start-game">
-              <Play className="w-5 h-5 ml-2" /> ابدأ اللعبة
+              <Play className="w-5 h-5 ml-2" /> Start Game
             </Button>
           )}
 
@@ -250,65 +260,65 @@ export default function HostScreen() {
             <>
               {!paused ? (
                 <Button onClick={handlePause} variant="secondary" className="w-full h-12" data-testid="button-pause">
-                  <Pause className="w-5 h-5 ml-2" /> إيقاف مؤقت
+                  <Pause className="w-5 h-5 ml-2" /> Pause
                 </Button>
               ) : (
                 <Button onClick={handleResume} className="w-full h-12" data-testid="button-resume">
-                  <PlayCircle className="w-5 h-5 ml-2" /> استئناف
+                  <PlayCircle className="w-5 h-5 ml-2" /> Resume
                 </Button>
               )}
               <Button onClick={handleReveal} className="w-full h-12" data-testid="button-reveal">
-                <Eye className="w-5 h-5 ml-2" /> كشف الإجابة
+                <Eye className="w-5 h-5 ml-2" /> Reveal Answer
               </Button>
             </>
           )}
 
           {phase === "REVEAL" && !isLastQuestion && (
             <Button onClick={handleNext} className="w-full h-12" data-testid="button-next-question">
-              <SkipForward className="w-5 h-5 ml-2" /> السؤال التالي
+              <SkipForward className="w-5 h-5 ml-2" /> Next Question
             </Button>
           )}
 
           {phase === "REVEAL" && isLastQuestion && (
-            <Button onClick={handleEnd} className="w-full h-12 bg-[#CDB58B] hover:bg-[#b9a178] text-[#1C1F2A]" data-testid="button-finish-game">
-              <Trophy className="w-5 h-5 ml-2" /> عرض النتائج النهائية
+            <Button onClick={handleEnd} className="w-full h-12 bg-gold hover:bg-gold-dark text-[hsl(var(--brand-bg))]" data-testid="button-finish-game">
+              <Trophy className="w-5 h-5 ml-2" /> Show Final Results
             </Button>
           )}
 
           {(phase === "REVEAL" || phase === "LEADERBOARD") && (
             <Button onClick={handleLeaderboard} variant="secondary" className="w-full h-12" data-testid="button-show-leaderboard">
-              <Trophy className="w-5 h-5 ml-2" /> عرض الترتيب
+              <Trophy className="w-5 h-5 ml-2" /> Show Leaderboard
             </Button>
           )}
 
           {phase === "LEADERBOARD" && !isLastQuestion && (
             <Button onClick={handleNext} className="w-full h-12" data-testid="button-next-question">
-              <SkipForward className="w-5 h-5 ml-2" /> السؤال التالي
+              <SkipForward className="w-5 h-5 ml-2" /> Next Question
             </Button>
           )}
 
           {phase === "LEADERBOARD" && isLastQuestion && (
-            <Button onClick={handleEnd} className="w-full h-12 bg-[#CDB58B] hover:bg-[#b9a178] text-[#1C1F2A]" data-testid="button-finish-game">
-              <Trophy className="w-5 h-5 ml-2" /> عرض النتائج النهائية
+            <Button onClick={handleEnd} className="w-full h-12 bg-gold hover:bg-gold-dark text-[hsl(var(--brand-bg))]" data-testid="button-finish-game">
+              <Trophy className="w-5 h-5 ml-2" /> Show Final Results
             </Button>
           )}
 
           {phase === "QUESTION" && (
             <Button onClick={handleEnd} variant="destructive" className="w-full h-12" data-testid="button-end-game">
-              <Square className="w-5 h-5 ml-2" /> إنهاء اللعبة
+              <Square className="w-5 h-5 ml-2" /> End Game
             </Button>
           )}
 
           {phase === "END" && (
             <Button onClick={handleRestart} variant="secondary" className="w-full h-12" data-testid="button-restart">
-              <RefreshCw className="w-5 h-5 ml-2" /> إعادة اللعبة
+              <RefreshCw className="w-5 h-5 ml-2" /> Restart Game
             </Button>
           )}
         </div>
 
         {players.length > 0 && (
           <div className="bg-card rounded-xl p-4 border border-border/30">
-            <h3 className="font-semibold mb-3 flex items-center gap-2"><Users className="w-4 h-4" /> اللاعبون</h3>
+            <h3 className="font-semibold mb-3 flex items-center gap-2"><Users className="w-4 h-4" /> Players</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {players.map((p) => (
                 <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30">

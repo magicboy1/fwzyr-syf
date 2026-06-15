@@ -25,14 +25,14 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
     if (result.success) {
       setAuthed(true);
     } else {
-      setError(result.error || "كلمة المرور غير صحيحة");
+      setError(result.error || "Incorrect password");
     }
   };
 
   if (authed === null) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#CDB58B]/30 border-t-[#CDB58B] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
       </div>
     );
   }
@@ -42,10 +42,10 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6" dir="rtl" data-testid="admin-gate">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6" dir="ltr" data-testid="admin-gate">
       <Link href="/">
         <Button variant="ghost" size="sm" className="absolute top-4 right-4" data-testid="button-back-home-gate">
-          <ArrowRight className="w-4 h-4 ml-1" /> الرئيسية
+          <ArrowRight className="w-4 h-4 ml-1" /> Home
         </Button>
       </Link>
 
@@ -55,16 +55,16 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
         className="w-full max-w-sm"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-full bg-[#CDB58B]/10 flex items-center justify-center mb-4">
-            <Lock className="w-8 h-8 text-[#CDB58B]" />
+          <div className="w-16 h-16 rounded-full bg-gold/10 flex items-center justify-center mb-4">
+            <Lock className="w-8 h-8 text-gold" />
           </div>
-          <h1 className="text-2xl font-bold text-[#CDB58B]">تسجيل الدخول</h1>
-          <p className="text-sm text-muted-foreground mt-1">أدخل كلمة المرور للوصول</p>
+          <h1 className="text-2xl font-bold text-gold">Sign In</h1>
+          <p className="text-sm text-muted-foreground mt-1">Enter the password to continue</p>
         </div>
 
         <div className="bg-card rounded-xl p-6 border border-border/30 space-y-4">
           <div>
-            <label className="text-sm text-muted-foreground block mb-1">كلمة المرور</label>
+            <label className="text-sm text-muted-foreground block mb-1">Password</label>
             <Input
               type="password"
               value={password}
@@ -93,7 +93,7 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
             className="w-full"
             data-testid="button-login"
           >
-            {loading ? "جاري التحقق..." : "دخول"}
+            {loading ? "Verifying..." : "Enter"}
           </Button>
         </div>
       </motion.div>

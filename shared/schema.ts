@@ -15,10 +15,21 @@ export type Question = z.infer<typeof questionSchema>;
 export const insertQuestionSchema = questionSchema.omit({ id: true });
 export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 
+// Event regions and how many winners each one awards. Single source of truth
+// used by registration, the game engine, and the results screen.
+export const REGIONS = [
+  { key: "riyadh", label: "Riyadh", winners: 20 },
+  { key: "jeddah", label: "Jeddah", winners: 15 },
+  { key: "khobar", label: "Al Khobar", winners: 10 },
+] as const;
+export type RegionKey = (typeof REGIONS)[number]["key"];
+export const REGION_KEYS = REGIONS.map((r) => r.key) as RegionKey[];
+
 export interface Player {
   id: string;
   name: string;
   phone: string;
+  region: RegionKey | "";
   sessionId: string;
   score: number;
   streak: number;
@@ -68,6 +79,14 @@ export interface LeaderboardEntry {
   rank: number;
   previousRank: number | null;
   streak: number;
+  region?: RegionKey | "";
+}
+
+export interface RegionResult {
+  key: RegionKey;
+  label: string;
+  winnerCount: number;
+  winners: LeaderboardEntry[];
 }
 
 export interface QuestionReveal {
@@ -93,6 +112,7 @@ export interface FinalStats {
   winner: LeaderboardEntry | null;
   podium: LeaderboardEntry[];
   fullLeaderboard: LeaderboardEntry[];
+  regionResults: RegionResult[];
 }
 
 export interface QuestionForBigScreen {

@@ -28,13 +28,33 @@ import { log } from "./index";
 
 const timers = new Map<string, NodeJS.Timeout>();
 const contextTimers = new Map<string, NodeJS.Timeout>();
+const answerUpdateTimers = new Map<string, NodeJS.Timeout>();
 const CONTEXT_DURATION = 6000;
+// Coalesce answerUpdate broadcasts: at high player counts, emitting on every
+// single answer floods the event loop. We flush at most once per this window.
+const ANSWER_UPDATE_THROTTLE_MS = 400;
 
 function clearSessionTimers(sessionId: string) {
   const t = timers.get(sessionId);
   if (t) { clearTimeout(t); timers.delete(sessionId); }
   const ct = contextTimers.get(sessionId);
   if (ct) { clearTimeout(ct); contextTimers.delete(sessionId); }
+  const at = answerUpdateTimers.get(sessionId);
+  if (at) { clearTimeout(at); answerUpdateTimers.delete(sessionId); }
+}
+
+let ioRef: SocketServer | null = null;
+
+// End a session from the admin side (no host key needed; the admin route is
+// already authenticated). Ends the game and broadcasts the final stats.
+export function forceEndSession(sessionId: string): boolean {
+  if (!ioRef) return false;
+  const session = getSession(sessionId);
+  if (!session) return false;
+  clearSessionTimers(sessionId);
+  const stats = endGame(sessionId);
+  ioRef.to(`session:${sessionId}`).emit("game:end", { stats });
+  return true;
 }
 
 export function setupSocketIO(httpServer: HttpServer): SocketServer {
@@ -44,12 +64,40 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     transports: ["websocket"],
     allowUpgrades: false,
     pingInterval: 25000,
-    pingTimeout: 20000,
+    // Forgiving timeout: under a CPU spike the event loop can stall briefly.
+    // A short pingTimeout makes hundreds of clients falsely disconnect and
+    // reconnect at once (a "reconnection avalanche"), which deepens the spike.
+    pingTimeout: 40000,
     maxHttpBufferSize: 1e5,
     perMessageDeflate: false,
     httpCompression: false,
     connectTimeout: 10000,
   });
+  ioRef = io;
+
+  // Coalesced answer-progress broadcast. Many answers arriving within the same
+  // window produce a single emit to host + display instead of one per answer.
+  function scheduleAnswerUpdate(sessionId: string) {
+    if (answerUpdateTimers.has(sessionId)) return;
+    const t = setTimeout(() => {
+      answerUpdateTimers.delete(sessionId);
+      try {
+        const session = getSession(sessionId);
+        if (!session) return;
+        const qi = session.currentQuestionIndex;
+        let answeredCount = 0;
+        for (const pid of Object.keys(session.players)) {
+          if (session.answersIndex.has(`${pid}:${qi}`)) answeredCount++;
+        }
+        const updateData = { answeredCount, totalPlayers: Object.keys(session.players).length };
+        io.to(`host:${sessionId}`).emit("game:answerUpdate", updateData);
+        io.to(`display:${sessionId}`).emit("game:answerUpdate", updateData);
+      } catch (e) {
+        console.error("Error in answerUpdate flush:", e);
+      }
+    }, ANSWER_UPDATE_THROTTLE_MS);
+    answerUpdateTimers.set(sessionId, t);
+  }
 
   function emitNextQuestion(sessionId: string) {
     const oldCtxTimer = contextTimers.get(sessionId);
@@ -176,7 +224,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "جلسة غير صالحة" });
+          callback?.({ success: false, error: "Invalid session" });
           return;
         }
         currentSessionId = session.id;
@@ -202,7 +250,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session) {
-          callback?.({ success: false, error: "الجلسة غير موجودة" });
+          callback?.({ success: false, error: "Session not found" });
           return;
         }
         currentSessionId = session.id;
@@ -220,21 +268,21 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       }
     });
 
-    socket.on("player:join", (data: { sessionId: string; name: string; phone: string }, callback) => {
+    socket.on("player:join", (data: { sessionId: string; name: string; phone: string; region?: string }, callback) => {
       try {
         const session = getSession(data.sessionId);
         if (!session) {
-          callback?.({ success: false, error: "اللعبة غير موجودة." });
+          callback?.({ success: false, error: "Game not found." });
           return;
         }
         if (session.phase !== "LOBBY") {
-          callback?.({ success: false, error: "اللعبة بدأت بالفعل." });
+          callback?.({ success: false, error: "The game has already started." });
           return;
         }
 
-        const player = addPlayer(session.id, data.name, data.phone || "");
+        const player = addPlayer(session.id, data.name, data.phone || "", data.region || "");
         if (!player) {
-          callback?.({ success: false, error: "تعذر الانضمام. جرب اسم مختلف." });
+          callback?.({ success: false, error: "Could not join. Try a different name." });
           return;
         }
 
@@ -244,15 +292,14 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         socket.join(`player:${player.id}`);
 
         const playerCount = getPlayerCount(session.id);
-        io.to(`display:${session.id}`).emit("game:playerJoined", {
+        // Send only the new player (not the whole list) so a join rush of N
+        // players stays O(N) instead of O(N²) in serialized payload.
+        const joinPayload = {
           player: { id: player.id, name: player.name },
           playerCount,
-        });
-        io.to(`host:${session.id}`).emit("game:playerJoined", {
-          player: { id: player.id, name: player.name },
-          playerCount,
-          players: getPlayerList(session.id),
-        });
+        };
+        io.to(`display:${session.id}`).emit("game:playerJoined", joinPayload);
+        io.to(`host:${session.id}`).emit("game:playerJoined", joinPayload);
 
         callback?.({
           success: true,
@@ -269,7 +316,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const player = reconnectPlayer(data.sessionId, data.playerId);
         if (!player) {
-          callback?.({ success: false, error: "تعذر إعادة الاتصال" });
+          callback?.({ success: false, error: "Could not reconnect" });
           return;
         }
 
@@ -305,11 +352,11 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "غير مصرح" });
+          callback?.({ success: false, error: "Unauthorized" });
           return;
         }
         if (!startGame(data.sessionId)) {
-          callback?.({ success: false, error: "لا يمكن بدء اللعبة" });
+          callback?.({ success: false, error: "Cannot start the game" });
           return;
         }
         callback?.({ success: true });
@@ -323,7 +370,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "غير مصرح" });
+          callback?.({ success: false, error: "Unauthorized" });
           return;
         }
 
@@ -344,31 +391,24 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       }
     });
 
-    socket.on("player:answer", (data: { sessionId: string; playerId: string; answer: "A" | "B" | "C" | "D" }, callback) => {
+    socket.on("player:answer", (data: { sessionId?: string; playerId?: string; answer: "A" | "B" | "C" | "D" }, callback) => {
       try {
-        const feedback = submitAnswer(data.sessionId, data.playerId, data.answer);
+        // Trust the socket's own identity, not client-supplied ids — otherwise
+        // a client could submit answers on behalf of any other player.
+        if (!currentSessionId || !currentPlayerId) {
+          callback?.({ success: false, error: "Could not record answer" });
+          return;
+        }
+
+        const feedback = submitAnswer(currentSessionId, currentPlayerId, data.answer);
         if (!feedback) {
-          callback?.({ success: false, error: "تعذر تسجيل الإجابة" });
+          callback?.({ success: false, error: "Could not record answer" });
           return;
         }
 
         callback?.({ success: true, feedback });
 
-        const session = getSession(data.sessionId);
-        if (session) {
-          let answeredCount = 0;
-          const qi = session.currentQuestionIndex;
-          const playerIds = Object.keys(session.players);
-          for (const pid of playerIds) {
-            if (session.answersIndex.has(`${pid}:${qi}`)) answeredCount++;
-          }
-          const updateData = {
-            answeredCount,
-            totalPlayers: getPlayerCount(data.sessionId),
-          };
-          io.to(`host:${data.sessionId}`).emit("game:answerUpdate", updateData);
-          io.to(`display:${data.sessionId}`).emit("game:answerUpdate", updateData);
-        }
+        scheduleAnswerUpdate(currentSessionId);
       } catch (e: any) {
         callback?.({ success: false, error: e.message });
       }
@@ -378,7 +418,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "غير مصرح" });
+          callback?.({ success: false, error: "Unauthorized" });
           return;
         }
 
@@ -387,7 +427,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         endQuestion(data.sessionId);
         const reveal = getReveal(data.sessionId);
         if (!reveal) {
-          callback?.({ success: false, error: "لا يوجد سؤال للكشف" });
+          callback?.({ success: false, error: "No question to reveal" });
           return;
         }
 
@@ -403,7 +443,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "غير مصرح" });
+          callback?.({ success: false, error: "Unauthorized" });
           return;
         }
 
@@ -420,7 +460,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "غير مصرح" });
+          callback?.({ success: false, error: "Unauthorized" });
           return;
         }
 
@@ -438,7 +478,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "غير مصرح" });
+          callback?.({ success: false, error: "Unauthorized" });
           return;
         }
 
@@ -448,7 +488,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           io.to(`session:${data.sessionId}`).emit("game:paused");
           callback?.({ success: true });
         } else {
-          callback?.({ success: false, error: "لا يمكن الإيقاف" });
+          callback?.({ success: false, error: "Cannot pause" });
         }
       } catch (e: any) {
         callback?.({ success: false, error: e.message });
@@ -459,7 +499,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "غير مصرح" });
+          callback?.({ success: false, error: "Unauthorized" });
           return;
         }
 
@@ -488,7 +528,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           }
           callback?.({ success: true });
         } else {
-          callback?.({ success: false, error: "لا يمكن الاستئناف" });
+          callback?.({ success: false, error: "Cannot resume" });
         }
       } catch (e: any) {
         callback?.({ success: false, error: e.message });
@@ -499,7 +539,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "غير مصرح" });
+          callback?.({ success: false, error: "Unauthorized" });
           return;
         }
 
@@ -512,7 +552,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           });
           callback?.({ success: true });
         } else {
-          callback?.({ success: false, error: "اللاعب غير موجود" });
+          callback?.({ success: false, error: "Player not found" });
         }
       } catch (e: any) {
         callback?.({ success: false, error: e.message });
@@ -523,7 +563,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       try {
         const session = getSession(data.sessionId);
         if (!session || session.hostKey !== data.hostKey) {
-          callback?.({ success: false, error: "غير مصرح" });
+          callback?.({ success: false, error: "Unauthorized" });
           return;
         }
 
@@ -547,7 +587,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           });
           callback?.({ success: true });
         } else {
-          callback?.({ success: false, error: "لا يمكن إعادة التشغيل" });
+          callback?.({ success: false, error: "Cannot restart" });
         }
       } catch (e: any) {
         callback?.({ success: false, error: e.message });

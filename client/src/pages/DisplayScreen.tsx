@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import confetti from "canvas-confetti";
 import { Maximize, Minimize } from "lucide-react";
-import logoUrl from "@assets/logo_1772218489356.png";
+import { BRAND } from "@/brand";
 import type { QuestionForBigScreen, QuestionReveal, LeaderboardEntry, FinalStats } from "@shared/schema";
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
@@ -91,11 +91,20 @@ export default function DisplayScreen() {
 
     socket.on("game:playerJoined", (data) => {
       setPlayerCount(data.playerCount);
-      setPlayers(data.players || []);
+      if (data.player) {
+        setPlayers((prev) =>
+          prev.some((p) => p.id === data.player.id) ? prev : [...prev, data.player]
+        );
+      } else if (data.players) {
+        setPlayers(data.players);
+      }
     });
 
     socket.on("game:playerLeft", (data) => {
       setPlayerCount(data.playerCount);
+      if (data.playerId) {
+        setPlayers((prev) => prev.filter((p) => p.id !== data.playerId));
+      }
     });
 
     socket.on("game:answerUpdate", (data) => {
@@ -168,7 +177,7 @@ export default function DisplayScreen() {
       setContextData(null);
 
       const frame = () => {
-        confetti({ particleCount: 3, angle: 60 + Math.random() * 60, spread: 55, origin: { x: Math.random(), y: 0.6 }, colors: ["#CDB58B", "#22c55e", "#e8d5a8"], disableForReducedMotion: true });
+        confetti({ particleCount: 3, angle: 60 + Math.random() * 60, spread: 55, origin: { x: Math.random(), y: 0.6 }, colors: [BRAND.colors.gold, "#22c55e", BRAND.colors.goldLight], disableForReducedMotion: true });
       };
       let count = 0;
       const interval = setInterval(() => {
@@ -250,12 +259,12 @@ export default function DisplayScreen() {
   const timerPercent = timerDuration > 0 ? (timeLeft / timerDuration) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden" dir="rtl" data-testid="display-screen">
+    <div className="min-h-screen bg-background text-foreground overflow-hidden" dir="ltr" data-testid="display-screen">
       <button
         onClick={toggleFullscreen}
         className="fixed top-4 left-4 z-[60] p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors"
         data-testid="button-fullscreen"
-        title={isFullscreen ? "خروج من ملء الشاشة" : "ملء الشاشة"}
+        title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
       >
         {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
       </button>
@@ -273,7 +282,7 @@ export default function DisplayScreen() {
               <motion.div
                 animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
                 transition={{ duration: 0.6, repeat: Infinity }}
-                className="text-8xl font-bold text-[#CDB58B] drop-shadow-[0_0_30px_rgba(205,181,139,0.5)]"
+                className="text-8xl font-bold text-gold drop-shadow-[0_0_30px_rgba(205,181,139,0.5)]"
               >
                 x2
               </motion.div>
@@ -281,9 +290,9 @@ export default function DisplayScreen() {
                 initial={{ y: 30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="text-3xl text-[#CDB58B] mt-6 font-semibold"
+                className="text-3xl text-gold mt-6 font-semibold"
               >
-                سؤال النقاط المضاعفة!
+                Double Points Question!
               </motion.p>
             </div>
           </motion.div>
@@ -306,7 +315,7 @@ export default function DisplayScreen() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.3, opacity: 0 }}
                 transition={{ duration: 0.4, ease: "backOut" }}
-                className="text-9xl font-black text-[#CDB58B] drop-shadow-[0_0_60px_rgba(205,181,139,0.6)]"
+                className="text-9xl font-black text-gold drop-shadow-[0_0_60px_rgba(205,181,139,0.6)]"
               >
                 {countdownNum}
               </motion.div>
@@ -317,14 +326,14 @@ export default function DisplayScreen() {
 
       {phase === "CONNECTING" && (
         <div className="flex items-center justify-center min-h-screen">
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 border-4 border-[#CDB58B]/30 border-t-[#CDB58B] rounded-full" />
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 border-4 border-gold/30 border-t-gold rounded-full" />
         </div>
       )}
 
       {phase === "ERROR" && (
         <div className="flex flex-col items-center justify-center min-h-screen">
-          <h2 className="text-3xl font-bold text-[#CDB58B] mb-4">الجلسة غير موجودة</h2>
-          <p className="text-muted-foreground">أنشئ جلسة جديدة من لوحة المضيف</p>
+          <h2 className="text-3xl font-bold text-gold mb-4">Session not found</h2>
+          <p className="text-muted-foreground">Create a new session from the host panel</p>
         </div>
       )}
 
@@ -359,16 +368,16 @@ function ContextScreen({ context, index, totalQuestions, isPortrait }: { context
       <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center" style={{ padding: "5%" }} data-testid="context-screen">
         <div style={{ maxWidth: "80%" }} className="flex flex-col items-center text-center">
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="ds-secondary text-muted-foreground mb-3">
-            سؤال {index + 1} من {totalQuestions}
+            Question {index + 1} of {totalQuestions}
           </motion.span>
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-[#CDB58B] ds-small font-semibold tracking-wide mb-6">
-            📖 اقرأ المقدمة
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-gold ds-small font-semibold tracking-wide mb-6">
+            📖 Read the intro
           </motion.span>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, duration: 0.7 }}
-            className="bg-card/60 border border-[#CDB58B]/20 rounded-2xl px-8 py-8 w-full"
+            className="bg-card/60 border border-gold/20 rounded-2xl px-8 py-8 w-full"
           >
             <p className="ds-question text-foreground text-center leading-relaxed font-bold" dir="auto" data-testid="text-context">
               {context}
@@ -376,9 +385,9 @@ function ContextScreen({ context, index, totalQuestions, isPortrait }: { context
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-8 w-48">
             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-[#CDB58B]/60 transition-all duration-100" style={{ width: `${progress}%` }} />
+              <div className="h-full rounded-full bg-gold/60 transition-all duration-100" style={{ width: `${progress}%` }} />
             </div>
-            <p className="ds-small text-muted-foreground text-center mt-2">السؤال قادم...</p>
+            <p className="ds-small text-muted-foreground text-center mt-2">Question coming up...</p>
           </motion.div>
         </div>
       </motion.div>
@@ -394,16 +403,16 @@ function ContextScreen({ context, index, totalQuestions, isPortrait }: { context
       data-testid="context-screen"
     >
       <motion.span initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-muted-foreground ds-secondary mb-4">
-        سؤال {index + 1} من {totalQuestions}
+        Question {index + 1} of {totalQuestions}
       </motion.span>
-      <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-[#CDB58B] ds-small font-semibold tracking-wide mb-6">
-        📖 اقرأ المقدمة
+      <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-gold ds-small font-semibold tracking-wide mb-6">
+        📖 Read the intro
       </motion.span>
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ delay: 0.4, duration: 0.7, type: "spring", bounce: 0.2 }}
-        className="bg-card/60 border border-[#CDB58B]/20 rounded-2xl" style={{ maxWidth: "80%", padding: "clamp(32px, 3vw, 72px)" }}
+        className="bg-card/60 border border-gold/20 rounded-2xl" style={{ maxWidth: "80%", padding: "clamp(32px, 3vw, 72px)" }}
       >
         <p className="ds-question text-foreground text-center leading-relaxed font-bold" dir="auto" data-testid="text-context">
           {context}
@@ -411,9 +420,9 @@ function ContextScreen({ context, index, totalQuestions, isPortrait }: { context
       </motion.div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-10" style={{ width: "clamp(200px, 15vw, 400px)" }}>
         <div className="w-full bg-muted rounded-full overflow-hidden" style={{ height: "clamp(6px, 0.3vw, 12px)" }}>
-          <div className="h-full rounded-full bg-[#CDB58B]/60 transition-all duration-100" style={{ width: `${progress}%` }} />
+          <div className="h-full rounded-full bg-gold/60 transition-all duration-100" style={{ width: `${progress}%` }} />
         </div>
-        <p className="ds-small text-muted-foreground text-center mt-2">السؤال قادم...</p>
+        <p className="ds-small text-muted-foreground text-center mt-2">Question coming up...</p>
       </motion.div>
     </motion.div>
   );
@@ -425,19 +434,16 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, isPortrait }: { sessionI
       <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center" style={{ padding: "5%" }} data-testid="lobby-screen">
         <div style={{ maxWidth: "80%" }} className="flex flex-col items-center text-center w-full">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="mb-6">
-            <img src={logoUrl} alt="السحور السنوي" className="h-16 mx-auto object-contain opacity-90" data-testid="img-logo" />
+            <img src={BRAND.logo} alt={BRAND.eventName} className="h-16 mx-auto object-contain opacity-90" data-testid="img-logo" />
           </motion.div>
-          <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="ds-question font-bold gold-shimmer mb-2">
-            فوازير سيف
-          </motion.h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="ds-secondary text-muted-foreground mb-8">
-            امسح الرمز للانضمام
+            Scan the code to join
           </motion.p>
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="bg-white p-6 rounded-3xl shadow-2xl shadow-[#CDB58B]/10 mb-8"
+            className="bg-white p-6 rounded-3xl shadow-2xl shadow-gold/10 mb-8"
             data-testid="qr-code"
           >
             <QRCodeSVG value={joinUrl} size={220} level="H" bgColor="#ffffff" fgColor="#1C1F2A" />
@@ -445,12 +451,12 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, isPortrait }: { sessionI
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="bg-card/80 backdrop-blur rounded-2xl px-10 py-5 border border-[#CDB58B]/20"
+            className="bg-card/80 backdrop-blur rounded-2xl px-10 py-5 border border-gold/20"
           >
-            <motion.p key={playerCount} initial={{ scale: 1.5, color: "#e8d5a8" }} animate={{ scale: 1, color: "#CDB58B" }} className="text-5xl font-bold text-[#CDB58B]" data-testid="text-player-count">
+            <motion.p key={playerCount} initial={{ scale: 1.5, color: BRAND.colors.goldLight }} animate={{ scale: 1, color: BRAND.colors.gold }} className="text-5xl font-bold text-gold" data-testid="text-player-count">
               {playerCount}
             </motion.p>
-            <p className="ds-small text-muted-foreground mt-1">لاعب انضموا</p>
+            <p className="ds-small text-muted-foreground mt-1">players joined</p>
           </motion.div>
         </div>
       </motion.div>
@@ -464,7 +470,7 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, isPortrait }: { sessionI
           initial={{ scale: 0, rotate: -10 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", bounce: 0.4, delay: 0.2 }}
-          className="bg-white rounded-3xl shadow-2xl shadow-[#CDB58B]/20 flex-shrink-0"
+          className="bg-white rounded-3xl shadow-2xl shadow-gold/20 flex-shrink-0"
           style={{ padding: "clamp(24px, 2.5vw, 56px)" }}
           data-testid="qr-code"
         >
@@ -473,24 +479,21 @@ function LobbyScreen({ sessionId, joinUrl, playerCount, isPortrait }: { sessionI
 
         <div className="flex flex-col items-center text-center">
           <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="mb-6">
-            <img src={logoUrl} alt="السحور السنوي" className="mx-auto object-contain opacity-90" style={{ height: "clamp(64px, 8vh, 160px)" }} data-testid="img-logo" />
+            <img src={BRAND.logo} alt={BRAND.eventName} className="mx-auto object-contain opacity-90" style={{ height: "clamp(64px, 8vh, 160px)" }} data-testid="img-logo" />
           </motion.div>
-          <motion.h1 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.3, delay: 0.1 }} className="ds-question font-bold gold-shimmer mb-3">
-            فوازير سيف
-          </motion.h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="ds-secondary text-muted-foreground mb-10">
-            امسح الرمز للانضمام
+            Scan the code to join
           </motion.p>
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="bg-card/80 backdrop-blur rounded-2xl border border-[#CDB58B]/20"
+            className="bg-card/80 backdrop-blur rounded-2xl border border-gold/20"
             style={{ padding: "clamp(16px, 2vw, 48px) clamp(32px, 4vw, 80px)" }}
           >
-            <motion.p key={playerCount} initial={{ scale: 1.5, color: "#e8d5a8" }} animate={{ scale: 1, color: "#CDB58B" }} className="font-bold text-[#CDB58B]" style={{ fontSize: "clamp(48px, 8vw, 180px)" }} data-testid="text-player-count">
+            <motion.p key={playerCount} initial={{ scale: 1.5, color: BRAND.colors.goldLight }} animate={{ scale: 1, color: BRAND.colors.gold }} className="font-bold text-gold" style={{ fontSize: "clamp(48px, 8vw, 180px)" }} data-testid="text-player-count">
               {playerCount}
             </motion.p>
-            <p className="ds-secondary text-muted-foreground mt-1">لاعب انضموا</p>
+            <p className="ds-secondary text-muted-foreground mt-1">players joined</p>
           </motion.div>
         </div>
       </div>
@@ -512,7 +515,7 @@ function CircularTimer({ timeLeft, timerDuration, size = 120 }: { timeLeft: numb
         <circle
           cx={size / 2} cy={size / 2} r={radius}
           fill="none"
-          stroke={isLow ? "#ef4444" : "#CDB58B"}
+          stroke={isLow ? "#ef4444" : BRAND.colors.gold}
           strokeWidth={6}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -521,7 +524,7 @@ function CircularTimer({ timeLeft, timerDuration, size = 120 }: { timeLeft: numb
         />
       </svg>
       <motion.span
-        className={`absolute font-bold tabular-nums ${isLow ? "text-red-400" : "text-[#CDB58B]"}`}
+        className={`absolute font-bold tabular-nums ${isLow ? "text-red-400" : "text-gold"}`}
         style={{ fontSize: size * 0.3 }}
         animate={isLow && timeLeft > 0 ? { scale: [1, 1.15, 1] } : {}}
         transition={{ duration: 0.5, repeat: Infinity }}
@@ -565,17 +568,17 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
       <motion.div {...pFade} className="min-h-screen flex flex-col" style={{ padding: "5%" }} data-testid="question-screen">
         <div style={{ maxWidth: "80%", margin: "0 auto" }} className="flex flex-col items-center flex-1 w-full">
           <div className="flex items-center justify-center gap-3 mb-3 w-full">
-            <img src={logoUrl} alt="" className="h-8 object-contain opacity-70" />
-            <span className="ds-small text-muted-foreground font-semibold">فوازير سيف</span>
+            <img src={BRAND.logo} alt="" className="h-8 object-contain opacity-70" />
+            <span className="ds-small text-muted-foreground font-semibold">{BRAND.name}</span>
           </div>
 
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-secondary text-muted-foreground mb-2">
-            سؤال {question.index + 1} من {question.totalQuestions}
+            Question {question.index + 1} of {question.totalQuestions}
           </motion.span>
 
           {question.isDoublePoints && (
-            <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: Infinity }} className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] ds-small font-semibold mb-3">
-              x2 نقاط مضاعفة
+            <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: Infinity }} className="px-4 py-1 bg-gold/15 border border-gold/40 rounded-full text-gold ds-small font-semibold mb-3">
+              x2 Double Points
             </motion.span>
           )}
 
@@ -603,8 +606,8 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
           </div>
 
           <div className="flex items-center justify-center gap-6 ds-small text-muted-foreground mt-auto">
-            <span dir="ltr" data-testid="text-answered-count">{answeredCount}/{totalPlayers} أجابوا</span>
-            {paused && <span className="text-[#CDB58B] font-semibold">متوقف</span>}
+            <span dir="ltr" data-testid="text-answered-count">{answeredCount}/{totalPlayers} answered</span>
+            {paused && <span className="text-gold font-semibold">Paused</span>}
           </div>
         </div>
       </motion.div>
@@ -615,20 +618,20 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="question-screen">
       <div className="flex items-center justify-between mb-6 gap-4">
         <motion.span initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="text-muted-foreground ds-secondary">
-          سؤال {question.index + 1} من {question.totalQuestions}
+          Question {question.index + 1} of {question.totalQuestions}
         </motion.span>
         {question.isDoublePoints && (
-          <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: Infinity }} className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] ds-small font-semibold">
-            x2 نقاط مضاعفة
+          <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: Infinity }} className="px-4 py-1 bg-gold/15 border border-gold/40 rounded-full text-gold ds-small font-semibold">
+            x2 Double Points
           </motion.span>
         )}
         <div className="flex items-center gap-6">
           <motion.span key={answeredCount} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-muted-foreground ds-secondary" data-testid="text-answered-count" dir="ltr">
             {answeredCount}/{totalPlayers}
           </motion.span>
-          {paused && <span className="text-[#CDB58B] font-semibold ds-secondary">متوقف</span>}
+          {paused && <span className="text-gold font-semibold ds-secondary">Paused</span>}
           <motion.span
-            className={`font-bold tabular-nums ds-question ${timeLeft <= 5 ? "text-red-400" : "text-[#CDB58B]"}`}
+            className={`font-bold tabular-nums ds-question ${timeLeft <= 5 ? "text-red-400" : "text-gold"}`}
             animate={timeLeft <= 5 && timeLeft > 0 ? { scale: [1, 1.15, 1] } : {}}
             transition={{ duration: 0.5, repeat: Infinity }}
             data-testid="text-timer"
@@ -642,7 +645,7 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
           className="h-full rounded-full"
           style={{
             width: `${timerPercent}%`,
-            background: timerPercent > 30 ? "linear-gradient(90deg, #CDB58B, #e8d5a8)" : timerPercent > 10 ? "linear-gradient(90deg, #d4a054, #CDB58B)" : "linear-gradient(90deg, #c44, #d4a054)",
+            background: timerPercent > 30 ? `linear-gradient(90deg, ${BRAND.colors.gold}, ${BRAND.colors.goldLight})` : timerPercent > 10 ? `linear-gradient(90deg, ${BRAND.colors.goldAccent}, ${BRAND.colors.gold})` : `linear-gradient(90deg, #c44, ${BRAND.colors.goldAccent})`,
           }}
           transition={{ duration: 0.1 }}
         />
@@ -671,7 +674,7 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
 
 function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal; question: QuestionForBigScreen | null; isPortrait: boolean }) {
   useEffect(() => {
-    confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 }, colors: ["#CDB58B", "#22c55e", "#e8d5a8"] });
+    confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 }, colors: [BRAND.colors.gold, "#22c55e", BRAND.colors.goldLight] });
   }, []);
 
   const fastestSection = reveal.topFastest.length > 0 ? (
@@ -681,7 +684,7 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
       transition={{ delay: 0.5 }}
       className="bg-card/50 rounded-2xl p-6 border border-border/30 w-full"
     >
-      <h3 className={`font-semibold text-[#CDB58B] mb-4 ${isPortrait ? "ds-secondary text-center" : "ds-secondary"}`}>⚡ الأسرع إجابة</h3>
+      <h3 className={`font-semibold text-gold mb-4 ${isPortrait ? "ds-secondary text-center" : "ds-secondary"}`}>⚡ Fastest Answers</h3>
       {reveal.topFastest.map((p, i) => (
         <motion.div
           key={i}
@@ -690,9 +693,9 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
           transition={{ delay: 0.6 + i * 0.15, type: "spring" }}
           className="flex items-center gap-4 mb-3"
         >
-          <span className={`rounded-full bg-[#CDB58B]/20 flex items-center justify-center font-bold text-[#CDB58B] ds-small`} style={{ width: isPortrait ? "clamp(32px, 4vw, 56px)" : "clamp(32px, 2.5vw, 56px)", height: isPortrait ? "clamp(32px, 4vw, 56px)" : "clamp(32px, 2.5vw, 56px)" }}>{i + 1}</span>
+          <span className={`rounded-full bg-gold/20 flex items-center justify-center font-bold text-gold ds-small`} style={{ width: isPortrait ? "clamp(32px, 4vw, 56px)" : "clamp(32px, 2.5vw, 56px)", height: isPortrait ? "clamp(32px, 4vw, 56px)" : "clamp(32px, 2.5vw, 56px)" }}>{i + 1}</span>
           <span className="font-medium flex-1 ds-small" dir="auto">{p.name}</span>
-          <span className="text-muted-foreground ds-small" dir="ltr">{(p.timeMs / 1000).toFixed(1)}ث</span>
+          <span className="text-muted-foreground ds-small" dir="ltr">{(p.timeMs / 1000).toFixed(1)}s</span>
         </motion.div>
       ))}
     </motion.div>
@@ -702,12 +705,12 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
     return (
       <motion.div {...pFade} className="min-h-screen flex flex-col overflow-y-auto" style={{ padding: "5%" }} data-testid="reveal-screen">
         <div style={{ maxWidth: "85%", margin: "0 auto" }} className="w-full flex flex-col items-center">
-          <p className="ds-secondary text-muted-foreground mb-2">سؤال {reveal.questionIndex + 1}</p>
+          <p className="ds-secondary text-muted-foreground mb-2">Question {reveal.questionIndex + 1}</p>
           {question && <h2 className="ds-question font-bold text-center mb-5" dir="auto">{question.text}</h2>}
 
           {reveal.isDoublePoints && (
             <div className="text-center mb-4">
-              <span className="px-5 py-2 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] ds-secondary font-semibold">x2 نقاط مضاعفة</span>
+              <span className="px-5 py-2 bg-gold/15 border border-gold/40 rounded-full text-gold ds-secondary font-semibold">x2 Double Points</span>
             </div>
           )}
 
@@ -744,12 +747,12 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="reveal-screen">
       <div className="mb-6">
-        <p className="text-muted-foreground ds-small mb-1">سؤال {reveal.questionIndex + 1}</p>
+        <p className="text-muted-foreground ds-small mb-1">Question {reveal.questionIndex + 1}</p>
         {question && <h2 className="ds-secondary font-bold" dir="auto">{question.text}</h2>}
       </div>
       {reveal.isDoublePoints && (
         <div className="text-center mb-4">
-          <span className="px-4 py-1 bg-[#CDB58B]/15 border border-[#CDB58B]/40 rounded-full text-[#CDB58B] ds-small font-semibold">x2 نقاط مضاعفة</span>
+          <span className="px-4 py-1 bg-gold/15 border border-gold/40 rounded-full text-gold ds-small font-semibold">x2 Double Points</span>
         </div>
       )}
       <div className="grid grid-cols-2 gap-6 mb-10">
@@ -793,8 +796,8 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
     return (
       <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center" style={{ padding: "5%" }} data-testid="leaderboard-screen">
         <div style={{ maxWidth: "80%" }} className="w-full flex flex-col items-center">
-          <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-question font-bold text-[#CDB58B] mb-8">
-            لوحة المتصدرين
+          <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-question font-bold text-gold mb-8">
+            Leaderboard
           </motion.h2>
           <div className="w-full space-y-3">
             {items.map((entry, i) => (
@@ -803,14 +806,14 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.12 }}
-                className={`flex items-center gap-4 p-4 rounded-xl ${i < 3 ? "bg-[#CDB58B]/10 border border-[#CDB58B]/20" : "bg-card/50 border border-border/20"}`}
+                className={`flex items-center gap-4 p-4 rounded-xl ${i < 3 ? "bg-gold/10 border border-gold/20" : "bg-card/50 border border-border/20"}`}
                 data-testid={`leaderboard-entry-${i}`}
               >
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: i * 0.12 + 0.2, type: "spring", bounce: 0.5 }}
-                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white shadow-lg shadow-[#CDB58B]/30" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${i === 0 ? "bg-gradient-to-br from-gold to-gold-dark text-white shadow-lg shadow-gold/30" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}
                 >
                   {entry.rank}
                 </motion.span>
@@ -829,7 +832,7 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: i * 0.12 + 0.3, type: "spring" }}
-                  className="ds-secondary font-bold text-[#CDB58B] tabular-nums"
+                  className="ds-secondary font-bold text-gold tabular-nums"
                   dir="ltr"
                 >
                   {entry.score.toLocaleString()}
@@ -844,8 +847,8 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-12" data-testid="leaderboard-screen">
-      <motion.h2 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="ds-question font-bold text-[#CDB58B] mb-12">
-        لوحة المتصدرين
+      <motion.h2 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="ds-question font-bold text-gold mb-12">
+        Leaderboard
       </motion.h2>
       <div className="w-full" style={{ maxWidth: "70%" }}>
         {leaderboard.slice(0, 10).map((entry, i) => (
@@ -854,7 +857,7 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
             initial={{ x: i % 2 === 0 ? -80 : 80, opacity: 0, scale: 0.9 }}
             animate={{ x: 0, opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.12, type: "spring", bounce: 0.3 }}
-            className={`flex items-center gap-6 mb-4 rounded-xl ${i < 3 ? "bg-[#CDB58B]/10 border border-[#CDB58B]/20" : "bg-card/50 border border-border/20"}`}
+            className={`flex items-center gap-6 mb-4 rounded-xl ${i < 3 ? "bg-gold/10 border border-gold/20" : "bg-card/50 border border-border/20"}`}
             style={{ padding: "clamp(12px, 1vw, 24px)" }}
             data-testid={`leaderboard-entry-${i}`}
           >
@@ -862,7 +865,7 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ delay: i * 0.12 + 0.2, type: "spring", bounce: 0.5 }}
-              className={`rounded-full flex items-center justify-center font-bold ds-secondary ${i === 0 ? "bg-gradient-to-br from-[#CDB58B] to-[#a89160] text-white shadow-lg shadow-[#CDB58B]/30" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}
+              className={`rounded-full flex items-center justify-center font-bold ds-secondary ${i === 0 ? "bg-gradient-to-br from-gold to-gold-dark text-white shadow-lg shadow-gold/30" : i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800" : i === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" : "bg-muted text-muted-foreground"}`}
               style={{ width: "clamp(40px, 3vw, 72px)", height: "clamp(40px, 3vw, 72px)" }}
             >
               {entry.rank}
@@ -882,7 +885,7 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: i * 0.12 + 0.3, type: "spring" }}
-              className="ds-secondary font-bold text-[#CDB58B] tabular-nums"
+              className="ds-secondary font-bold text-gold tabular-nums"
               dir="ltr"
             >
               {entry.score.toLocaleString()}
@@ -899,9 +902,9 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
     return (
       <motion.div {...pFade} className="min-h-screen flex flex-col items-center overflow-y-auto" style={{ padding: "5%" }} data-testid="end-screen">
         <div style={{ maxWidth: "80%" }} className="w-full flex flex-col items-center">
-          <motion.img initial={{ opacity: 0 }} animate={{ opacity: 0.8 }} src={logoUrl} alt="الشعار" className="h-10 mb-4" />
-          <motion.h2 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="ds-question font-bold text-[#CDB58B] mb-6">
-            انتهت اللعبة!
+          <motion.img initial={{ opacity: 0 }} animate={{ opacity: 0.8 }} src={BRAND.logo} alt="Logo" className="h-10 mb-4" />
+          <motion.h2 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="ds-question font-bold text-gold mb-6">
+            Game Over!
           </motion.h2>
 
           {stats.podium.length > 0 && (
@@ -910,37 +913,30 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.8 }} className="flex flex-col items-center">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-xl font-bold text-gray-800 mb-2 shadow-lg">2</div>
                   <p className="font-semibold ds-small mb-1 text-center" dir="auto">{stats.podium[1].name}</p>
-                  <p className="text-[#CDB58B] font-bold ds-small" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
+                  <p className="text-gold font-bold ds-small" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
                   <motion.div initial={{ height: 0 }} animate={{ height: 80 }} transition={{ delay: 0.8, duration: 0.5 }} className="w-24 bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-2" />
                 </motion.div>
               )}
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }} className="flex flex-col items-center">
-                <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }} className="w-24 h-24 rounded-full bg-gradient-to-br from-[#CDB58B] via-[#e8d5a8] to-[#a89160] flex items-center justify-center text-3xl font-bold text-white mb-2 shadow-2xl shadow-[#CDB58B]/40">
+                <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }} className="w-24 h-24 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold-dark flex items-center justify-center text-3xl font-bold text-white mb-2 shadow-2xl shadow-gold/40">
                   1
                 </motion.div>
                 <p className="font-bold ds-secondary mb-1 text-center" dir="auto">{stats.podium[0].name}</p>
-                <p className="text-[#CDB58B] font-bold ds-secondary" dir="ltr">{stats.podium[0].score.toLocaleString()}</p>
-                <motion.div initial={{ height: 0 }} animate={{ height: 120 }} transition={{ delay: 0.5, duration: 0.6 }} className="w-28 bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-2" />
+                <p className="text-gold font-bold ds-secondary" dir="ltr">{stats.podium[0].score.toLocaleString()}</p>
+                <motion.div initial={{ height: 0 }} animate={{ height: 120 }} transition={{ delay: 0.5, duration: 0.6 }} className="w-28 bg-gradient-to-t from-gold/20 to-gold/5 rounded-t-lg mt-2" />
               </motion.div>
               {stats.podium.length > 2 && (
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.1 }} className="flex flex-col items-center">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-xl font-bold text-white mb-2 shadow-lg">3</div>
                   <p className="font-semibold ds-small mb-1 text-center" dir="auto">{stats.podium[2].name}</p>
-                  <p className="text-[#CDB58B] font-bold ds-small" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
+                  <p className="text-gold font-bold ds-small" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
                   <motion.div initial={{ height: 0 }} animate={{ height: 56 }} transition={{ delay: 1.1, duration: 0.4 }} className="w-24 bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-2" />
                 </motion.div>
               )}
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3 w-full mb-6">
-            {stats.fastestCorrect && <StatCard title="أسرع إجابة صحيحة" value={`${(stats.fastestCorrect.timeMs / 1000).toFixed(1)} ثانية`} subtitle={stats.fastestCorrect.playerName} delay={0.3} isPortrait />}
-            {stats.bestStreak && <StatCard title="صح متتالي 🔥" value={`${stats.bestStreak.streakLength} على التوالي`} subtitle={stats.bestStreak.playerName} delay={0.4} isPortrait />}
-            {stats.hardestQuestion && <StatCard title="أصعب سؤال" value={`${stats.hardestQuestion.correctPercent}% صحيح`} subtitle={`سؤال ${stats.hardestQuestion.questionIndex + 1}`} delay={0.5} isPortrait />}
-            <StatCard title="متوسط وقت الإجابة" value={`${(stats.avgResponseTime / 1000).toFixed(1)} ثانية`} subtitle="جميع اللاعبين" delay={0.6} isPortrait />
-            <StatCard title="نسبة المشاركة" value={`${stats.participationRate}%`} subtitle={`${stats.totalPlayers} لاعب`} delay={0.7} isPortrait />
-            <StatCard title="عدد الأسئلة" value={`${stats.totalQuestions}`} subtitle="سؤال تم لعبه" delay={0.8} isPortrait />
-          </div>
+          <RegionWinners stats={stats} isPortrait={true} />
         </div>
       </motion.div>
     );
@@ -948,9 +944,9 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen flex flex-col items-center p-8 lg:p-12 overflow-y-auto" data-testid="end-screen">
-      <motion.img initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 0.8 }} transition={{ type: "spring", bounce: 0.4 }} src={logoUrl} alt="الشعار" style={{ height: "clamp(48px, 4vw, 96px)" }} className="mb-6" />
-      <motion.h2 initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="ds-question font-bold text-[#CDB58B] mb-4">
-        انتهت اللعبة!
+      <motion.img initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 0.8 }} transition={{ type: "spring", bounce: 0.4 }} src={BRAND.logo} alt="Logo" style={{ height: "clamp(48px, 4vw, 96px)" }} className="mb-6" />
+      <motion.h2 initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="ds-question font-bold text-gold mb-4">
+        Game Over!
       </motion.h2>
       {stats.podium.length > 0 && (
         <div className="flex items-end justify-center mb-12 mt-8" style={{ gap: "clamp(24px, 3vw, 64px)" }}>
@@ -960,19 +956,19 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
                 2
               </motion.div>
               <p className="font-semibold ds-secondary mb-1" dir="auto">{stats.podium[1].name}</p>
-              <p className="text-[#CDB58B] font-bold ds-small" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
+              <p className="text-gold font-bold ds-small" dir="ltr">{stats.podium[1].score.toLocaleString()}</p>
               <motion.div initial={{ height: 0 }} animate={{ height: "clamp(80px, 8vw, 160px)" }} transition={{ delay: 0.8, duration: 0.5 }} className="bg-gradient-to-t from-gray-500/20 to-gray-400/10 rounded-t-lg mt-3" style={{ width: "clamp(96px, 7vw, 160px)" }} />
             </motion.div>
           )}
           <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
-            <motion.div animate={{ scale: [1, 1.08, 1], rotate: [0, 2, -2, 0] }} transition={{ duration: 2, repeat: Infinity }} className="rounded-full bg-gradient-to-br from-[#CDB58B] via-[#e8d5a8] to-[#a89160] flex items-center justify-center font-bold text-white mb-3 shadow-2xl shadow-[#CDB58B]/40 ds-question" style={{ width: "clamp(96px, 7vw, 160px)", height: "clamp(96px, 7vw, 160px)" }}>
+            <motion.div animate={{ scale: [1, 1.08, 1], rotate: [0, 2, -2, 0] }} transition={{ duration: 2, repeat: Infinity }} className="rounded-full bg-gradient-to-br from-gold via-gold-light to-gold-dark flex items-center justify-center font-bold text-white mb-3 shadow-2xl shadow-gold/40 ds-question" style={{ width: "clamp(96px, 7vw, 160px)", height: "clamp(96px, 7vw, 160px)" }}>
               1
             </motion.div>
             <p className="font-bold ds-secondary mb-1" dir="auto">{stats.podium[0].name}</p>
-            <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.7, type: "spring" }} className="text-[#CDB58B] font-bold ds-secondary" dir="ltr">
+            <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.7, type: "spring" }} className="text-gold font-bold ds-secondary" dir="ltr">
               {stats.podium[0].score.toLocaleString()}
             </motion.p>
-            <motion.div initial={{ height: 0 }} animate={{ height: "clamp(112px, 10vw, 220px)" }} transition={{ delay: 0.5, duration: 0.6 }} className="bg-gradient-to-t from-[#CDB58B]/20 to-[#CDB58B]/5 rounded-t-lg mt-3" style={{ width: "clamp(112px, 8vw, 180px)" }} />
+            <motion.div initial={{ height: 0 }} animate={{ height: "clamp(112px, 10vw, 220px)" }} transition={{ delay: 0.5, duration: 0.6 }} className="bg-gradient-to-t from-gold/20 to-gold/5 rounded-t-lg mt-3" style={{ width: "clamp(112px, 8vw, 180px)" }} />
           </motion.div>
           {stats.podium.length > 2 && (
             <motion.div initial={{ y: 150, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 1.1, type: "spring", bounce: 0.4 }} className="flex flex-col items-center">
@@ -980,21 +976,53 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
                 3
               </motion.div>
               <p className="font-semibold ds-secondary mb-1" dir="auto">{stats.podium[2].name}</p>
-              <p className="text-[#CDB58B] font-bold ds-small" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
+              <p className="text-gold font-bold ds-small" dir="ltr">{stats.podium[2].score.toLocaleString()}</p>
               <motion.div initial={{ height: 0 }} animate={{ height: "clamp(56px, 5vw, 110px)" }} transition={{ delay: 1.1, duration: 0.4 }} className="bg-gradient-to-t from-orange-500/20 to-orange-400/10 rounded-t-lg mt-3" style={{ width: "clamp(96px, 7vw, 160px)" }} />
             </motion.div>
           )}
         </div>
       )}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 w-full mb-8" style={{ maxWidth: "70%" }}>
-        {stats.fastestCorrect && <StatCard title="أسرع إجابة صحيحة" value={`${(stats.fastestCorrect.timeMs / 1000).toFixed(1)} ثانية`} subtitle={stats.fastestCorrect.playerName} delay={0.3} />}
-        {stats.bestStreak && <StatCard title="صح متتالي 🔥" value={`${stats.bestStreak.streakLength} على التوالي`} subtitle={stats.bestStreak.playerName} delay={0.4} />}
-        {stats.hardestQuestion && <StatCard title="أصعب سؤال" value={`${stats.hardestQuestion.correctPercent}% صحيح`} subtitle={`سؤال ${stats.hardestQuestion.questionIndex + 1}`} delay={0.5} />}
-        <StatCard title="متوسط وقت الإجابة" value={`${(stats.avgResponseTime / 1000).toFixed(1)} ثانية`} subtitle="جميع اللاعبين" delay={0.6} />
-        <StatCard title="نسبة المشاركة" value={`${stats.participationRate}%`} subtitle={`${stats.totalPlayers} لاعب`} delay={0.7} />
-        <StatCard title="عدد الأسئلة" value={`${stats.totalQuestions}`} subtitle="سؤال تم لعبه" delay={0.8} />
-      </div>
+      <RegionWinners stats={stats} isPortrait={false} />
     </motion.div>
+  );
+}
+
+function RegionWinners({ stats, isPortrait }: { stats: FinalStats; isPortrait: boolean }) {
+  const regions = stats.regionResults || [];
+  if (regions.length === 0) return null;
+  return (
+    <div
+      className={`grid w-full gap-4 ${isPortrait ? "grid-cols-1" : "grid-cols-3"}`}
+      style={{ maxWidth: isPortrait ? "100%" : "94%" }}
+      data-testid="region-winners"
+    >
+      {regions.map((r, ri) => (
+        <motion.div
+          key={r.key}
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 + ri * 0.15, type: "spring", bounce: 0.3 }}
+          className="bg-card/60 rounded-2xl border border-gold/25 flex flex-col overflow-hidden"
+        >
+          <div className="text-center px-3 py-3 bg-gold/10 border-b border-gold/25">
+            <h3 className="ds-secondary font-bold text-gold leading-tight">{r.label}</h3>
+            <p className="ds-small text-gold-accent font-semibold">{r.winners.length} of {r.winnerCount} winners</p>
+          </div>
+          <ol className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5" style={{ maxHeight: isPortrait ? "40vh" : "62vh" }}>
+            {r.winners.map((w, i) => (
+              <li key={w.playerId} className="flex items-center gap-2 rounded-lg px-2 py-1 odd:bg-white/[0.03]">
+                <span className={`w-7 text-center font-bold ds-small ${i < 3 ? "text-gold-accent" : "text-muted-foreground"}`} dir="ltr">{i + 1}</span>
+                <span className="flex-1 truncate font-medium" dir="auto">{w.name}</span>
+                <span className="text-gold font-bold ds-small" dir="ltr">{w.score.toLocaleString()}</span>
+              </li>
+            ))}
+            {r.winners.length === 0 && (
+              <li className="text-muted-foreground text-center ds-small py-6">No winners from this region</li>
+            )}
+          </ol>
+        </motion.div>
+      ))}
+    </div>
   );
 }
 
@@ -1011,7 +1039,7 @@ function StatCard({ title, value, subtitle, delay = 0, isPortrait = false }: { t
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: delay + 0.2, type: "spring", bounce: 0.5 }}
-        className="font-bold text-[#CDB58B] ds-secondary"
+        className="font-bold text-gold ds-secondary"
       >
         {value}
       </motion.p>

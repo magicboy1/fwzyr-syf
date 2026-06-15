@@ -23,7 +23,7 @@ export async function login(password: string): Promise<{ success: boolean; error
     setAdminToken(data.token);
     return { success: true };
   }
-  return { success: false, error: data.error || "خطأ" };
+  return { success: false, error: data.error || "Error" };
 }
 
 export async function verifyToken(): Promise<boolean> {

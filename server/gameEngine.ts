@@ -1,4 +1,7 @@
 import { randomUUID } from "crypto";
+import fs from "fs";
+import path from "path";
+import { REGIONS, REGION_KEYS } from "@shared/schema";
 import type {
   GameSession,
   Question,
@@ -7,6 +10,8 @@ import type {
   LeaderboardEntry,
   QuestionReveal,
   FinalStats,
+  RegionResult,
+  RegionKey,
   QuestionForBigScreen,
   QuestionForPlayer,
   PlayerFeedback,
@@ -18,7 +23,106 @@ function generateHostKey(): string {
 
 const sessions = new Map<string, GameSession>();
 
+// Bounds so anyone calling host:create (it is unauthenticated by design) cannot
+// grow memory without limit, and stale sessions don't accumulate forever.
+const MAX_SESSIONS = 200;
+const SESSION_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6h
+const ENDED_SESSION_GRACE_MS = 30 * 60 * 1000; // keep finished games 30m for winners lookup
+
+function reapStaleSessions(): void {
+  const now = Date.now();
+  for (const [id, s] of Array.from(sessions.entries())) {
+    const age = now - s.createdAt;
+    if (age > SESSION_MAX_AGE_MS) {
+      sessions.delete(id);
+    } else if (s.phase === "END" && age > ENDED_SESSION_GRACE_MS) {
+      sessions.delete(id);
+    }
+  }
+}
+
+setInterval(reapStaleSessions, 10 * 60 * 1000).unref?.();
+
+// ---------------------------------------------------------------------------
+// Crash/restart persistence. Game state lives in memory, so a process restart
+// mid-event would normally wipe every session. We snapshot to disk every few
+// seconds (and on shutdown) and reload on boot. Clients auto-reconnect via
+// player:reconnect / host:reconnect (ids kept in localStorage), repopulating
+// the socket rooms. Note: question auto-advance timers are NOT restored — after
+// a restart the host drives the round manually (reveal/next still work).
+// ---------------------------------------------------------------------------
+const SESSIONS_FILE = path.join(process.cwd(), "data", "sessions.json");
+const SAVE_INTERVAL_MS = 2000;
+
+function serializeSessions(): string {
+  // answersIndex (a Map) is rebuilt from `answers` on load, so we drop it here.
+  return JSON.stringify(
+    Array.from(sessions.values()),
+    (key, value) => (key === "answersIndex" ? undefined : value),
+  );
+}
+
+function persistSessions(sync = false): void {
+  try {
+    const dir = path.dirname(SESSIONS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const data = serializeSessions();
+    if (sync) fs.writeFileSync(SESSIONS_FILE, data, "utf-8");
+    else fs.writeFile(SESSIONS_FILE, data, "utf-8", () => {});
+  } catch (e) {
+    console.error("Failed to persist sessions:", e);
+  }
+}
+
+// Periodic snapshot: coalesces all state changes and survives hard crashes
+// (worst case we lose ~2s). A graceful restart additionally flushes on exit.
+setInterval(() => {
+  if (sessions.size > 0) persistSessions(false);
+}, SAVE_INTERVAL_MS).unref?.();
+
+function restoreSessions(): void {
+  try {
+    if (!fs.existsSync(SESSIONS_FILE)) return;
+    const raw = fs.readFileSync(SESSIONS_FILE, "utf-8");
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return;
+    const now = Date.now();
+    let restored = 0;
+    for (const s of arr) {
+      if (!s || typeof s.id !== "string") continue;
+      const age = now - (s.createdAt ?? 0);
+      if (age > SESSION_MAX_AGE_MS) continue;
+      if (s.phase === "END" && age > ENDED_SESSION_GRACE_MS) continue;
+      // Mark everyone disconnected until their socket reconnects.
+      for (const pid of Object.keys(s.players || {})) {
+        s.players[pid].connected = false;
+      }
+      // Rebuild the answers index from the answers array.
+      s.answersIndex = new Map();
+      for (const a of s.answers || []) {
+        s.answersIndex.set(`${a.playerId}:${a.questionIndex}`, a);
+      }
+      sessions.set(s.id, s as GameSession);
+      restored++;
+    }
+    if (restored > 0) console.log(`Restored ${restored} session(s) from disk`);
+  } catch (e) {
+    console.error("Failed to restore sessions:", e);
+  }
+}
+
+restoreSessions();
+
+// Flush synchronously on shutdown so an intentional restart loses nothing.
+process.on("SIGTERM", () => { persistSessions(true); process.exit(0); });
+process.on("SIGINT", () => { persistSessions(true); process.exit(0); });
+
 export function createSession(questions: Question[], defaultTimeLimit: number = 30): GameSession {
+  reapStaleSessions();
+  if (sessions.size >= MAX_SESSIONS) {
+    throw new Error("Too many active sessions");
+  }
+
   const id = randomUUID();
   const hostKey = generateHostKey();
 
@@ -56,7 +160,7 @@ export function getSession(sessionId: string): GameSession | undefined {
 }
 
 
-export function addPlayer(sessionId: string, name: string, phone: string): Player | null {
+export function addPlayer(sessionId: string, name: string, phone: string, region: string = ""): Player | null {
   const session = sessions.get(sessionId);
   if (!session || session.phase !== "LOBBY") return null;
 
@@ -64,19 +168,23 @@ export function addPlayer(sessionId: string, name: string, phone: string): Playe
   if (!sanitized) return null;
 
   const sanitizedPhone = phone.replace(/[^0-9+]/g, "").trim();
+  const validRegion = (REGION_KEYS as string[]).includes(region) ? (region as RegionKey) : "";
 
-  const existing = Object.values(session.players).find(
+  // Names must be unique. Previously a same-name join silently took over the
+  // existing player (and their score) — at a large event two genuine "Ahmed"s
+  // would collide. Reject instead; the join handler tells them to pick another.
+  // (Legitimate refresh/reconnect goes through player:reconnect by playerId,
+  // not by name, so this does not break normal reconnection.)
+  const nameTaken = Object.values(session.players).some(
     (p) => p.name.toLowerCase() === sanitized.toLowerCase()
   );
-  if (existing) {
-    existing.connected = true;
-    return existing;
-  }
+  if (nameTaken) return null;
 
   const player: Player = {
     id: randomUUID(),
     name: sanitized,
     phone: sanitizedPhone,
+    region: validRegion,
     sessionId,
     score: 0,
     streak: 0,
@@ -337,6 +445,7 @@ export function getLeaderboard(sessionId: string): LeaderboardEntry[] {
       rank: i + 1,
       previousRank: session.previousRanks[p.id] ?? null,
       streak: p.streak,
+      region: p.region,
     }));
 
   return entries;
@@ -479,6 +588,16 @@ export function endGame(sessionId: string): FinalStats | null {
   const podium = leaderboard.slice(0, 3);
   const winner = podium[0] || null;
 
+  // Winners grouped by region: top N per region (counts defined in REGIONS),
+  // ranked within the region.
+  const regionResults: RegionResult[] = REGIONS.map((r) => {
+    const winners = leaderboard
+      .filter((e) => e.region === r.key)
+      .slice(0, r.winners)
+      .map((e, i) => ({ ...e, rank: i + 1 }));
+    return { key: r.key, label: r.label, winnerCount: r.winners, winners };
+  });
+
   return {
     fastestCorrect,
     bestStreak,
@@ -490,6 +609,7 @@ export function endGame(sessionId: string): FinalStats | null {
     winner,
     podium,
     fullLeaderboard: leaderboard,
+    regionResults,
   };
 }
 
@@ -573,5 +693,27 @@ export function getWinnersWithPhone(sessionId: string): { rank: number; name: st
     name: p.name,
     phone: p.phone,
     score: p.score,
+  }));
+}
+
+// Contactable winners grouped by region (top N per region, with phone numbers)
+// for the organizers to reach out after the event.
+export function getRegionWinnersWithPhone(sessionId: string): {
+  key: RegionKey;
+  label: string;
+  winnerCount: number;
+  winners: { rank: number; name: string; phone: string; score: number }[];
+}[] {
+  const session = sessions.get(sessionId);
+  if (!session) return [];
+  const sorted = Object.values(session.players).sort((a, b) => b.score - a.score);
+  return REGIONS.map((r) => ({
+    key: r.key,
+    label: r.label,
+    winnerCount: r.winners,
+    winners: sorted
+      .filter((p) => p.region === r.key)
+      .slice(0, r.winners)
+      .map((p, i) => ({ rank: i + 1, name: p.name, phone: p.phone, score: p.score })),
   }));
 }

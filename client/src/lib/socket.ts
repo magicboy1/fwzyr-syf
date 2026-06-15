@@ -10,7 +10,10 @@ export function getSocket(): Socket {
       reconnection: true,
       reconnectionAttempts: 20,
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      reconnectionDelayMax: 8000,
+      // Spread reconnection attempts across a wide jitter window so hundreds of
+      // clients don't all retry on the same tick after a brief server stall.
+      randomizationFactor: 0.75,
       timeout: 10000,
     });
   }

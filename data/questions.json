@@ -1,93 +1,137 @@
 [
   {
-    "id": "9ad3767d-123e-4ad0-9cec-56b35709cbad",
-    "context": "في عام مفصلي شكّل نقطة الانطلاق الرسمية لمسيرة الشركة الوطنية للخدمات الأمنية (سيف)، صدر أمر سامٍ بإنشائها.",
-    "text": "في أي عام صدر الأمر السامي بإنشاء الشركة الوطنية للخدمات الأمنية (سيف)؟",
+    "id": "v1q1",
+    "context": "Value 1 — We Own Our Commitments, No Excuses Just Results",
+    "text": "A major issue appears shortly before an important leadership meeting. What is the best response?",
     "options": [
-      "2019",
-      "2020",
-      "2022",
-      "2023"
+      "Pause the delivery completely",
+      "Wait for leadership direction",
+      "Deliver the presentation anyway",
+      "Take ownership and solve the issue"
+    ],
+    "correct": "D",
+    "category": "We Own Our Commitments",
+    "timeLimit": 20
+  },
+  {
+    "id": "v1q2",
+    "text": "Which behavior best reflects accountability?",
+    "options": [
+      "Escalating every problem",
+      "Avoiding difficult tasks",
+      "Taking responsibility for outcomes",
+      "Focusing only on speed"
+    ],
+    "correct": "C",
+    "category": "We Own Our Commitments",
+    "timeLimit": 20
+  },
+  {
+    "id": "v2q1",
+    "context": "Value 2 — Trusted Across Generations",
+    "text": "A deadline may be delayed because of an external dependency. What is the best response?",
+    "options": [
+      "Wait for confirmation",
+      "Communicate early and clearly",
+      "Avoid discussing the issue",
+      "Shift blame to vendors"
+    ],
+    "correct": "B",
+    "category": "Trusted Across Generations",
+    "timeLimit": 20
+  },
+  {
+    "id": "v2q2",
+    "text": "Long-term trust is usually built through:",
+    "options": [
+      "Consistent actions and reliability",
+      "Fast responses under pressure",
+      "Strong presentation skills",
+      "High project visibility"
     ],
     "correct": "A",
-    "category": "المسيرة الزمنية"
+    "category": "Trusted Across Generations",
+    "timeLimit": 20
   },
   {
-    "id": "63df6630-f9f0-4b88-9abc-e205428003dd",
-    "context": "مع انطلاقة سيف، شاركت مبكرًا في حدث عالمي عزز حضورها ورسّخ مكانتها على المستوى الدولي.",
-    "text": "ما هو الحدث العالمي الذي شاركت فيه سيف في عام الإطلاق؟",
+    "id": "v3q1",
+    "context": "Value 3 — Tomorrow Ready",
+    "text": "A team wants to improve a process that has existed for years. What mindset does this reflect?",
     "options": [
-      "كروز السعودية",
-      "كأس العالم قطر",
-      "مجموعة العشرين (G20)",
-      "معرض إنترسك"
+      "Resistance to change",
+      "Future-focused thinking",
+      "Operational uncertainty",
+      "Performance pressure"
+    ],
+    "correct": "B",
+    "category": "Tomorrow Ready",
+    "timeLimit": 20
+  },
+  {
+    "id": "v3q2",
+    "text": "Organizations that avoid change over time risk:",
+    "options": [
+      "Slower communication",
+      "Less visibility",
+      "Becoming less relevant",
+      "More teamwork"
     ],
     "correct": "C",
-    "category": "المسيرة الزمنية"
+    "category": "Tomorrow Ready",
+    "timeLimit": 20
   },
   {
-    "id": "4814ef58-6037-4653-8d1a-49c4369d864e",
-    "context": "في عام النمو 2021، شهدت سيف محطة استراتيجية مهمة عززت حضورها في المشاريع الوطنية الكبرى.",
-    "text": "أي من المشاريع التالية مثّل محطة استراتيجية في مسيرة سيف خلال عام 2021؟",
+    "id": "v4q1",
+    "context": "Value 4 — Never Above Learning",
+    "text": "A senior employee asks junior colleagues for feedback. What does this demonstrate?",
     "options": [
-      "موبايلي",
-      "زين",
-      "مشروع القدية",
-      "مشروع STC"
-    ],
-    "correct": "D",
-    "category": "المسيرة الزمنية"
-  },
-  {
-    "id": "ee2a1138-7c1d-4cb1-862f-75e1e34f323e",
-    "context": "في عام 2022، وسّعت سيف حضورها دوليًا عبر المشاركة في تأمين بطولة عالمية كبرى ذات حضور دولي واسع.",
-    "text": "ما هي هذه البطولة؟",
-    "options": [
-      "إنترسك",
-      "STC",
-      "كأس العالم قطر",
-      "فيفا"
+      "Leadership uncertainty",
+      "Lack of expertise",
+      "Learning humility",
+      "Reduced authority"
     ],
     "correct": "C",
-    "category": "المسيرة الزمنية"
+    "category": "Never Above Learning",
+    "timeLimit": 20
   },
   {
-    "id": "a21ec7af-8189-48b2-8012-ecfac7ed8d00",
-    "context": "عام التميز 2023 لم يكن فقط عامًا للتوسع، بل لتعزيز تمكين الكفاءات الوطنية في قطاع الأمن.",
-    "text": "ما هو الإنجاز الذي عزز هذا التمكين؟",
+    "id": "v4q2",
+    "text": "Which behavior best reflects curiosity?",
     "options": [
-      "مشغلو مركز القيادة",
-      "خدمات Rangers",
-      "مشغلات الوسائل الحية (K9)",
-      "إدارة العمليات"
+      "Asking thoughtful questions",
+      "Defending past decisions",
+      "Avoiding unfamiliar tasks",
+      "Relying only on experience"
+    ],
+    "correct": "A",
+    "category": "Never Above Learning",
+    "timeLimit": 20
+  },
+  {
+    "id": "v5q1",
+    "context": "Value 5 — We Stand Together, We Achieve Together",
+    "text": "Two teams succeed individually, but the project fails overall. What is the main issue?",
+    "options": [
+      "Poor collaboration",
+      "Weak accountability",
+      "Limited innovation",
+      "Slow execution"
+    ],
+    "correct": "A",
+    "category": "We Stand Together",
+    "timeLimit": 20
+  },
+  {
+    "id": "v5q2",
+    "text": "A colleague struggles during a critical deadline. What action best reflects teamwork?",
+    "options": [
+      "Focus on your own tasks",
+      "Wait for leadership action",
+      "Offer support proactively",
+      "Escalate the pressure"
     ],
     "correct": "C",
-    "category": "المسيرة الزمنية"
-  },
-  {
-    "id": "4b1e0e03-1547-4343-8272-678f8a6fc68b",
-    "context": "في عام 2024، دخلت سيف مرحلة جديدة من التطور عبر إطلاق خدمات نوعية تعكس توسع نطاق أعمالها.",
-    "text": "ما هي هذه الخدمات؟",
-    "options": [
-      "الخدمات البحرية",
-      "الحلول الأمنية",
-      "التدريب",
-      "إدارة المرافق وخدمات الإطفاء"
-    ],
-    "correct": "D",
-    "category": "المسيرة الزمنية"
-  },
-  {
-    "id": "4ade9fa3-26e4-4c5e-8a98-0304c0b24eef",
-    "context": "في عام 2025، واصلت سيف مسيرة التوسع خارج حدود المملكة لتؤكد حضورها الإقليمي والدولي.",
-    "text": "إلى أي مناطق امتد حضورها؟",
-    "options": [
-      "أفريقيا",
-      "أمريكا",
-      "دول مجلس التعاون",
-      "منطقة الشرق الأوسط وشمال أفريقيا وأوروبا"
-    ],
-    "correct": "D",
-    "category": "المسيرة الزمنية"
+    "category": "We Stand Together",
+    "timeLimit": 20
   }
 ]

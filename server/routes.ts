@@ -1,13 +1,13 @@
 import type { Express } from "express";
 import { type Server } from "http";
-import { setupSocketIO } from "./socketHandler";
+import { setupSocketIO, forceEndSession } from "./socketHandler";
 import { sampleQuestions } from "./sampleQuestions";
-import { randomUUID, createHash } from "crypto";
+import { randomUUID, timingSafeEqual } from "crypto";
 import type { Question } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
-import { getAllSessions, getWinnersWithPhone } from "./gameEngine";
+import { getAllSessions, getWinnersWithPhone, getRegionWinnersWithPhone } from "./gameEngine";
 
 const QUESTIONS_FILE = path.join(process.cwd(), "data", "questions.json");
 
@@ -39,18 +39,64 @@ const questionBodySchema = z.object({
 
 let questionBank: Question[] = loadQuestions();
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
-
-function hashToken(password: string): string {
-  return createHash("sha256").update(password + "fawazeer-salt").digest("hex");
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.warn(
+    "[security] ADMIN_PASSWORD is not set — admin endpoints are disabled. " +
+      "Set ADMIN_PASSWORD as a secret to enable question management.",
+  );
 }
 
-const adminToken = hashToken(ADMIN_PASSWORD);
+// Random, expiring session tokens issued on successful login. This replaces the
+// previous deterministic password-hash token, which never expired and was the
+// same value for every admin forever.
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
+const validTokens = new Map<string, number>(); // token -> expiresAt
+
+function issueToken(): string {
+  const token = randomUUID();
+  validTokens.set(token, Date.now() + SESSION_TTL_MS);
+  return token;
+}
+
+function isValidToken(token: unknown): boolean {
+  if (typeof token !== "string") return false;
+  const exp = validTokens.get(token);
+  if (!exp) return false;
+  if (Date.now() > exp) {
+    validTokens.delete(token);
+    return false;
+  }
+  return true;
+}
+
+function passwordMatches(input: unknown): boolean {
+  if (!ADMIN_PASSWORD || typeof input !== "string") return false;
+  const a = Buffer.from(input);
+  const b = Buffer.from(ADMIN_PASSWORD);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+// Simple in-memory login rate limiter to slow password brute-forcing.
+const LOGIN_WINDOW_MS = 5 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 10;
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function loginRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const rec = loginAttempts.get(ip);
+  if (!rec || now > rec.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return false;
+  }
+  rec.count++;
+  return rec.count > LOGIN_MAX_ATTEMPTS;
+}
 
 function requireAdmin(req: any, res: any, next: any) {
-  const token = req.headers["x-admin-token"];
-  if (token !== adminToken) {
-    res.status(401).json({ error: "غير مصرح" });
+  if (!isValidToken(req.headers["x-admin-token"])) {
+    res.status(401).json({ error: "Unauthorized" });
     return;
   }
   next();
@@ -63,17 +109,20 @@ export async function registerRoutes(
   setupSocketIO(httpServer);
 
   app.post("/api/auth/login", (req, res) => {
-    const { password } = req.body;
-    if (password === ADMIN_PASSWORD) {
-      res.json({ success: true, token: adminToken });
+    const ip = (req.ip || req.socket?.remoteAddress || "unknown").toString();
+    if (loginRateLimited(ip)) {
+      res.status(429).json({ success: false, error: "Too many attempts. Try again later." });
+      return;
+    }
+    if (passwordMatches(req.body?.password)) {
+      res.json({ success: true, token: issueToken() });
     } else {
-      res.status(401).json({ success: false, error: "كلمة المرور غير صحيحة" });
+      res.status(401).json({ success: false, error: "Incorrect password" });
     }
   });
 
   app.get("/api/auth/verify", (req, res) => {
-    const token = req.headers["x-admin-token"];
-    if (token === adminToken) {
+    if (isValidToken(req.headers["x-admin-token"])) {
       res.json({ valid: true });
     } else {
       res.status(401).json({ valid: false });
@@ -149,19 +198,19 @@ export async function registerRoutes(
     }
     const imported: Question[] = [];
     for (const q of questions) {
-      if (q.text && q.options && q.correct) {
-        const question: Question = {
-          id: randomUUID(),
-          context: q.context || undefined,
-          text: q.text,
-          options: q.options,
-          correct: q.correct,
-          category: q.category || undefined,
-          timeLimit: q.timeLimit || undefined,
-        };
-        questionBank.push(question);
-        imported.push(question);
-      }
+      const parsed = questionBodySchema.safeParse(q);
+      if (!parsed.success) continue; // skip malformed rows rather than poisoning the bank
+      const question: Question = {
+        id: randomUUID(),
+        context: parsed.data.context || undefined,
+        text: parsed.data.text,
+        options: parsed.data.options,
+        correct: parsed.data.correct,
+        category: parsed.data.category || undefined,
+        timeLimit: parsed.data.timeLimit || undefined,
+      };
+      questionBank.push(question);
+      imported.push(question);
     }
     saveQuestions(questionBank);
     res.json({ imported: imported.length, questions: imported });
@@ -197,8 +246,17 @@ export async function registerRoutes(
         phase: s.phase,
         playerCount: Object.keys(s.players).length,
         winners: getWinnersWithPhone(s.id),
+        regionWinners: getRegionWinnersWithPhone(s.id),
       }));
     res.json(results);
+  });
+
+  app.post("/api/sessions/:id/end", requireAdmin, (req, res) => {
+    if (!forceEndSession(req.params.id)) {
+      res.status(404).json({ error: "Session not found" });
+      return;
+    }
+    res.json({ success: true });
   });
 
   return httpServer;

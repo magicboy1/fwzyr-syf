@@ -17,12 +17,20 @@
 
 /* LIGHT MODE */
 :root {
+  /* ---- BRAND COLORS (edit these to rebrand; see REBRAND.md) ---- */
+  /* aljeel — HSL channels. Keep in sync with BRAND.colors in brand.ts. */
+  --brand-gold: 204 90% 48%;        /* primary accent — aljeel Denim blue (screen-bright) */
+  --brand-gold-light: 204 75% 64%;  /* light blue tint */
+  --brand-gold-dark: 203 100% 30%;  /* deep Denim #005A93 */
+  --brand-gold-accent: 8 69% 58%;   /* Pimento coral #DE5E4C */
+  --brand-bg: 222 32% 11%;          /* deep navy background */
+  /* -------------------------------------------------------------- */
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
   --opaque-button-border-intensity: -8;
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
-  --background: 227 20% 14%;
+  --background: 222 32% 11%;
   --foreground: 40 20% 92%;
   --border: 227 18% 22%;
   --card: 227 20% 17%;
@@ -31,16 +39,16 @@
   --sidebar: 227 20% 15%;
   --sidebar-foreground: 40 20% 92%;
   --sidebar-border: 227 18% 20%;
-  --sidebar-primary: 38 40% 67%;
-  --sidebar-primary-foreground: 227 20% 10%;
+  --sidebar-primary: 204 90% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 227 18% 20%;
   --sidebar-accent-foreground: 40 20% 92%;
-  --sidebar-ring: 38 40% 67%;
+  --sidebar-ring: 204 90% 48%;
   --popover: 227 20% 17%;
   --popover-foreground: 40 20% 92%;
   --popover-border: 227 18% 22%;
-  --primary: 38 40% 67%;
-  --primary-foreground: 227 20% 10%;
+  --primary: 204 90% 48%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 227 18% 22%;
   --secondary-foreground: 40 20% 92%;
   --muted: 227 18% 20%;
@@ -50,14 +58,14 @@
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 10% 98%;
   --input: 227 18% 26%;
-  --ring: 38 40% 67%;
-  --chart-1: 38 40% 67%;
+  --ring: 204 90% 48%;
+  --chart-1: 204 90% 48%;
   --chart-2: 220 70% 55%;
   --chart-3: 160 50% 45%;
   --chart-4: 0 65% 55%;
   --chart-5: 280 55% 55%;
-  --font-sans: 'IBM Plex Sans Arabic', 'IBM Plex Sans', 'Inter', sans-serif;
-  --font-serif: 'IBM Plex Sans Arabic', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', 'Inter', sans-serif;
+  --font-serif: 'IBM Plex Sans', Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: .5rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(220 15% 12% / 0.00);
@@ -106,7 +114,7 @@
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
-  --background: 227 20% 10%;
+  --background: 0 0% 100%;
   --foreground: 40 20% 93%;
   --border: 227 18% 18%;
   --card: 227 20% 13%;
@@ -115,15 +123,15 @@
   --sidebar: 227 20% 11%;
   --sidebar-foreground: 40 20% 93%;
   --sidebar-border: 227 18% 17%;
-  --sidebar-primary: 38 40% 67%;
+  --sidebar-primary: 204 90% 48%;
   --sidebar-primary-foreground: 227 20% 8%;
   --sidebar-accent: 227 18% 17%;
   --sidebar-accent-foreground: 40 20% 93%;
-  --sidebar-ring: 38 40% 67%;
+  --sidebar-ring: 204 90% 48%;
   --popover: 227 20% 13%;
   --popover-foreground: 40 20% 93%;
   --popover-border: 227 18% 20%;
-  --primary: 38 40% 67%;
+  --primary: 204 90% 48%;
   --primary-foreground: 227 20% 8%;
   --secondary: 227 18% 20%;
   --secondary-foreground: 40 20% 93%;
@@ -134,8 +142,8 @@
   --destructive: 0 70% 50%;
   --destructive-foreground: 0 5% 98%;
   --input: 227 18% 22%;
-  --ring: 38 40% 67%;
-  --chart-1: 38 40% 67%;
+  --ring: 204 90% 48%;
+  --chart-1: 204 90% 48%;
   --chart-2: 220 70% 55%;
   --chart-3: 280 65% 70%;
   --chart-4: 160 60% 65%;
@@ -185,6 +193,11 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    /* Subtle brand depth: faint Denim-blue and coral glows over the deep navy. */
+    background-image:
+      radial-gradient(60% 50% at 18% 0%, hsl(var(--brand-gold) / 0.10), transparent 70%),
+      radial-gradient(55% 45% at 100% 100%, hsl(var(--brand-gold-accent) / 0.08), transparent 70%);
+    background-attachment: fixed;
   }
 }
 
@@ -204,7 +217,7 @@
 }
 
 .gold-shimmer {
-  background: linear-gradient(90deg, #CDB58B 0%, #e8d5a8 25%, #CDB58B 50%, #a89160 75%, #CDB58B 100%);
+  background: linear-gradient(90deg, hsl(var(--brand-gold)) 0%, hsl(var(--brand-gold-light)) 22%, hsl(var(--brand-gold-accent)) 50%, hsl(var(--brand-gold-light)) 78%, hsl(var(--brand-gold)) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

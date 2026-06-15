@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import confetti from "canvas-confetti";
 import type { QuestionForPlayer, PlayerFeedback } from "@shared/schema";
-import logoUrl from "@assets/logo_1772218489356.png";
+import { REGIONS } from "@shared/schema";
+import { BRAND } from "@/brand";
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
@@ -16,6 +17,7 @@ export default function PlayerScreen() {
   const [sessionId, setSessionId] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [region, setRegion] = useState("");
   const [error, setError] = useState("");
   const [playerId, setPlayerId] = useState("");
   const [playerName, setPlayerName] = useState("");
@@ -125,7 +127,7 @@ export default function PlayerScreen() {
             particleCount: 60,
             spread: 80,
             origin: { y: 0.6 },
-            colors: ["#CDB58B", "#22c55e", "#e8d5a8"],
+            colors: [BRAND.colors.gold, "#22c55e", BRAND.colors.goldLight],
           });
         }
       }
@@ -197,20 +199,24 @@ export default function PlayerScreen() {
     const trimmed = name.trim();
     const parts = trimmed.split(/\s+/);
     if (!trimmed) {
-      setError("الرجاء إدخال اسمك الثلاثي");
+      setError("Please enter your full name");
       return;
     }
     if (parts.length < 3) {
-      setError("الاسم لازم يكون ثلاثي (الاسم الأول + الأب + العائلة)");
+      setError("Please enter your full name (first, middle, last)");
       return;
     }
     if (!phone.trim()) {
-      setError("الرجاء إدخال رقم الموبايل");
+      setError("Please enter your mobile number");
+      return;
+    }
+    if (!region) {
+      setError("Please select your region");
       return;
     }
     setError("");
     const socket = getSocket();
-    socket.emit("player:join", { sessionId, name: trimmed, phone: phone.trim() }, (res: any) => {
+    socket.emit("player:join", { sessionId, name: trimmed, phone: phone.trim(), region }, (res: any) => {
       if (res.success) {
         setPlayerId(res.playerId);
         setPlayerName(res.playerName);
@@ -218,7 +224,7 @@ export default function PlayerScreen() {
         localStorage.setItem("fawazeer_sessionId", res.sessionId);
         setPhase("WAITING");
       } else {
-        setError(res.error || "تعذر الانضمام");
+        setError(res.error || "Could not join");
       }
     });
   };
@@ -241,7 +247,7 @@ export default function PlayerScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col" dir="rtl" data-testid="player-screen">
+    <div className="min-h-screen bg-background text-foreground flex flex-col" dir="ltr" data-testid="player-screen">
       <AnimatePresence>
         {showCountdown && (
           <motion.div
@@ -258,7 +264,7 @@ export default function PlayerScreen() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.3, opacity: 0 }}
                 transition={{ duration: 0.4, ease: "backOut" }}
-                className="text-8xl font-black text-[#CDB58B] drop-shadow-[0_0_40px_rgba(205,181,139,0.5)]"
+                className="text-8xl font-black text-gold drop-shadow-[0_0_40px_rgba(205,181,139,0.5)]"
               >
                 {countdownNum}
               </motion.div>
@@ -270,8 +276,8 @@ export default function PlayerScreen() {
       <AnimatePresence mode="wait">
         {phase === "INVALID" && (
           <motion.div key="invalid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center p-6">
-            <h1 className="text-2xl font-bold text-[#CDB58B] mb-4">رابط غير صالح</h1>
-            <p className="text-muted-foreground text-center mb-6">امسح رمز QR من الشاشة الرئيسية للانضمام</p>
+            <h1 className="text-2xl font-bold text-gold mb-4">Invalid link</h1>
+            <p className="text-muted-foreground text-center mb-6">Scan the QR code on the main screen to join</p>
           </motion.div>
         )}
 
@@ -281,26 +287,18 @@ export default function PlayerScreen() {
               initial={{ scale: 0, rotate: -20 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", bounce: 0.5 }}
-              src={logoUrl}
-              alt="فوازير سيف"
-              className="h-20 mb-6 object-contain opacity-90"
+              src={BRAND.logo}
+              alt={BRAND.name}
+              className="h-24 mb-6 object-contain"
               data-testid="img-player-logo"
             />
-            <motion.h1
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="text-3xl font-bold gold-shimmer mb-2"
-            >
-              فوازير سيف
-            </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
               className="text-muted-foreground mb-8"
             >
-              أدخل بياناتك للانضمام
+              Enter your details to join
             </motion.p>
 
             <motion.div
@@ -311,7 +309,7 @@ export default function PlayerScreen() {
             >
               <Input
                 type="text"
-                placeholder="الاسم الثلاثي"
+                placeholder="Full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="text-center text-lg h-14 bg-card border-border/50"
@@ -322,7 +320,7 @@ export default function PlayerScreen() {
               />
               <Input
                 type="tel"
-                placeholder="رقم الموبايل"
+                placeholder="Mobile number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="text-center text-lg h-14 bg-card border-border/50"
@@ -331,6 +329,26 @@ export default function PlayerScreen() {
                 data-testid="input-phone"
                 onKeyDown={(e) => e.key === "Enter" && handleJoin()}
               />
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground text-center">Select your region</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {REGIONS.map((r) => (
+                    <button
+                      key={r.key}
+                      type="button"
+                      onClick={() => setRegion(r.key)}
+                      data-testid={`button-region-${r.key}`}
+                      className={`h-14 rounded-xl border text-base font-semibold transition-colors ${
+                        region === r.key
+                          ? "bg-gold text-white border-gold"
+                          : "bg-card text-foreground border-border/50 hover:border-gold/60"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {error && (
                 <motion.p
                   initial={{ x: -10, opacity: 0 }}
@@ -342,7 +360,7 @@ export default function PlayerScreen() {
                 </motion.p>
               )}
               <Button onClick={handleJoin} className="w-full h-14 text-lg font-semibold" data-testid="button-join">
-                انضم
+                Join
               </Button>
             </motion.div>
           </motion.div>
@@ -353,8 +371,8 @@ export default function PlayerScreen() {
             <motion.img
               animate={{ y: [0, -8, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              src={logoUrl}
-              alt="فوازير سيف"
+              src={BRAND.logo}
+              alt={BRAND.name}
               className="h-16 mb-6 object-contain opacity-80"
             />
             <div className="text-center">
@@ -364,22 +382,22 @@ export default function PlayerScreen() {
                     key={i}
                     animate={{ y: [0, -12, 0] }}
                     transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                    className="w-3 h-3 rounded-full bg-[#CDB58B]"
+                    className="w-3 h-3 rounded-full bg-gold"
                   />
                 ))}
               </div>
               <p className="text-muted-foreground text-lg">
-                {gameStarted ? "بانتظار السؤال التالي..." : "بانتظار بدء اللعبة..."}
+                {gameStarted ? "Waiting for the next question..." : "Waiting for the game to start..."}
               </p>
               {gameStarted && (
                 <motion.p
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring" }}
-                  className="mt-4 text-sm text-[#CDB58B] font-semibold"
+                  className="mt-4 text-sm text-gold font-semibold"
                   data-testid="text-score"
                 >
-                  النقاط: {score.toLocaleString()}
+                  Score: {score.toLocaleString()}
                 </motion.p>
               )}
             </div>
@@ -389,18 +407,18 @@ export default function PlayerScreen() {
         {phase === "QUESTION" && question && (
           <motion.div key="question" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col p-4">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-muted-foreground">سؤال {question.index + 1}/{question.totalQuestions}</span>
+              <span className="text-sm text-muted-foreground">Question {question.index + 1}/{question.totalQuestions}</span>
               {question.isDoublePoints && (
                 <motion.span
                   animate={{ scale: [1, 1.15, 1] }}
                   transition={{ duration: 0.8, repeat: Infinity }}
-                  className="text-xs px-2 py-0.5 bg-[#CDB58B]/15 text-[#CDB58B] rounded-full font-semibold"
+                  className="text-xs px-2 py-0.5 bg-gold/15 text-gold rounded-full font-semibold"
                 >
                   x2
                 </motion.span>
               )}
               <motion.span
-                className={`text-xl font-bold tabular-nums ${timeLeft <= 5 ? "text-red-400" : "text-[#CDB58B]"}`}
+                className={`text-xl font-bold tabular-nums ${timeLeft <= 5 ? "text-red-400" : "text-gold"}`}
                 animate={timeLeft <= 5 && timeLeft > 0 ? { scale: [1, 1.2, 1] } : {}}
                 transition={{ duration: 0.5, repeat: Infinity }}
                 data-testid="text-player-timer"
@@ -414,7 +432,7 @@ export default function PlayerScreen() {
                 className="h-full rounded-full"
                 style={{
                   width: `${question.timeLimit > 0 ? (timeLeft / question.timeLimit) * 100 : 0}%`,
-                  background: (timeLeft / question.timeLimit) > 0.3 ? "#CDB58B" : (timeLeft / question.timeLimit) > 0.1 ? "#d4a054" : "#c44",
+                  background: (timeLeft / question.timeLimit) > 0.3 ? BRAND.colors.gold : (timeLeft / question.timeLimit) > 0.1 ? BRAND.colors.goldAccent : "#c44",
                   transition: "width 0.3s linear",
                 }}
               />
@@ -441,7 +459,7 @@ export default function PlayerScreen() {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleAnswer(label)}
                   disabled={!!selectedAnswer}
-                  className={`w-full py-5 px-5 rounded-xl border text-right flex items-center gap-4 transition-colors ${selectedAnswer === label ? "bg-[#CDB58B]/20 border-[#CDB58B]/50 text-foreground" : selectedAnswer ? "bg-card/40 border-border/20 text-muted-foreground opacity-50" : "bg-card border-border/30 text-foreground active:bg-[#CDB58B]/10"}`}
+                  className={`w-full py-5 px-5 rounded-xl border text-right flex items-center gap-4 transition-colors ${selectedAnswer === label ? "bg-gold/20 border-gold/50 text-foreground" : selectedAnswer ? "bg-card/40 border-border/20 text-muted-foreground opacity-50" : "bg-card border-border/30 text-foreground active:bg-gold/10"}`}
                   dir="auto"
                   data-testid={`button-answer-${label}`}
                 >
@@ -451,7 +469,7 @@ export default function PlayerScreen() {
                       initial={{ scale: 0, rotate: -90 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: "spring", bounce: 0.6 }}
-                      className="w-6 h-6 rounded-full bg-[#CDB58B] flex items-center justify-center shrink-0"
+                      className="w-6 h-6 rounded-full bg-gold flex items-center justify-center shrink-0"
                     >
                       <svg className="w-4 h-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                     </motion.span>
@@ -468,13 +486,13 @@ export default function PlayerScreen() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", bounce: 0.5 }}
-              className="w-20 h-20 rounded-full bg-[#CDB58B]/20 flex items-center justify-center mb-4"
+              className="w-20 h-20 rounded-full bg-gold/20 flex items-center justify-center mb-4"
             >
               <motion.svg
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="w-10 h-10 text-[#CDB58B]"
+                className="w-10 h-10 text-gold"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -488,7 +506,7 @@ export default function PlayerScreen() {
               transition={{ delay: 0.2 }}
               className="text-xl font-semibold"
             >
-              تم استلام الإجابة
+              Answer received
             </motion.h3>
             <motion.p
               initial={{ opacity: 0 }}
@@ -496,7 +514,7 @@ export default function PlayerScreen() {
               transition={{ duration: 2, repeat: Infinity }}
               className="text-muted-foreground mt-2"
             >
-              بانتظار النتائج...
+              Waiting for results...
             </motion.p>
           </motion.div>
         )}
@@ -531,7 +549,7 @@ export default function PlayerScreen() {
               transition={{ delay: 0.2, type: "spring" }}
               className={`text-2xl font-bold mb-2 ${feedback.correct ? "text-green-400" : "text-red-400"}`}
             >
-              {feedback.correct ? "إجابة صحيحة!" : "إجابة خاطئة!"}
+              {feedback.correct ? "Correct!" : "Wrong!"}
             </motion.h3>
 
             {feedback.pointsGained > 0 && (
@@ -539,7 +557,7 @@ export default function PlayerScreen() {
                 initial={{ y: 30, opacity: 0, scale: 0.5 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3, type: "spring", bounce: 0.5 }}
-                className="text-3xl font-bold text-[#CDB58B] mb-1"
+                className="text-3xl font-bold text-gold mb-1"
                 dir="ltr"
               >
                 +{feedback.pointsGained.toLocaleString()}
@@ -551,9 +569,9 @@ export default function PlayerScreen() {
                 initial={{ scale: 0, rotate: -10 }}
                 animate={{ scale: [0, 1.2, 1], rotate: [0, 5, 0] }}
                 transition={{ delay: 0.5, type: "spring" }}
-                className="text-[#CDB58B] font-semibold mb-2"
+                className="text-gold font-semibold mb-2"
               >
-                مكافأة السلسلة! +500
+                Streak bonus! +500
               </motion.p>
             )}
 
@@ -563,15 +581,15 @@ export default function PlayerScreen() {
               transition={{ delay: 0.4 }}
               className="mt-4 space-y-2 text-center"
             >
-              <p className="text-muted-foreground">المجموع: <span className="text-foreground font-bold" dir="ltr">{feedback.totalScore.toLocaleString()}</span></p>
-              <p className="text-muted-foreground">الترتيب: <span className="text-foreground font-bold">#{feedback.rank}</span></p>
+              <p className="text-muted-foreground">Total: <span className="text-foreground font-bold" dir="ltr">{feedback.totalScore.toLocaleString()}</span></p>
+              <p className="text-muted-foreground">Rank: <span className="text-foreground font-bold">#{feedback.rank}</span></p>
               {feedback.streak >= 2 && (
                 <motion.p
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 1, repeat: Infinity }}
-                  className="text-[#CDB58B] text-sm"
+                  className="text-gold text-sm"
                 >
-                  🔥 {feedback.streak} إجابات صحيحة متتالية
+                  🔥 {feedback.streak} correct in a row
                 </motion.p>
               )}
             </motion.div>
@@ -586,9 +604,9 @@ export default function PlayerScreen() {
               transition={{ type: "spring" }}
               className="text-2xl font-bold text-red-400 mb-2"
             >
-              تم إخراجك من اللعبة
+              You've been removed
             </motion.h3>
-            <p className="text-muted-foreground">تم إخراجك من قبل المضيف</p>
+            <p className="text-muted-foreground">You were removed by the host</p>
           </motion.div>
         )}
 
@@ -598,15 +616,15 @@ export default function PlayerScreen() {
               initial={{ y: -30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ type: "spring", bounce: 0.4 }}
-              className="text-2xl font-bold text-[#CDB58B] mb-4"
+              className="text-2xl font-bold text-gold mb-4"
             >
-              انتهت اللعبة!
+              Game Over!
             </motion.h3>
             <motion.p
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.3, type: "spring", bounce: 0.5 }}
-              className="text-4xl font-bold text-[#CDB58B] mb-2"
+              className="text-4xl font-bold text-gold mb-2"
               dir="ltr"
               data-testid="text-final-score"
             >
@@ -618,7 +636,7 @@ export default function PlayerScreen() {
               transition={{ delay: 0.5 }}
               className="text-muted-foreground"
             >
-              مجموع النقاط
+              Total score
             </motion.p>
           </motion.div>
         )}

@@ -5,15 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Question } from "@shared/schema";
-import { Plus, Trash2, Upload, Download, ArrowRight, Edit2, Save, X, Trophy, Phone } from "lucide-react";
+import { Plus, Trash2, Upload, Download, ArrowRight, Edit2, Save, X } from "lucide-react";
 import { Link } from "wouter";
-
-interface SessionWinners {
-  sessionId: string;
-  phase: string;
-  playerCount: number;
-  winners: { rank: number; name: string; phone: string; score: number }[];
-}
 
 interface EditState {
   context: string;
@@ -48,9 +41,9 @@ function QuestionForm({
   return (
     <div className="space-y-3">
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">مقدمة السؤال (اختياري)</label>
+        <label className="text-xs text-muted-foreground block mb-1">Question intro (optional)</label>
         <textarea
-          placeholder="مقدمة تظهر على الشاشة الكبيرة قبل السؤال..."
+          placeholder="Intro shown on the big screen before the question..."
           value={state.context}
           onChange={(e) => set("context", e.target.value)}
           className="w-full bg-muted rounded-md border border-border/50 px-3 py-2 text-sm resize-none min-h-[60px]"
@@ -59,37 +52,37 @@ function QuestionForm({
           data-testid="input-question-context"
         />
       </div>
-      <Input placeholder="نص السؤال" value={state.text} onChange={(e) => set("text", e.target.value)} className="bg-muted" dir="auto" data-testid="input-question-text" />
+      <Input placeholder="Question text" value={state.text} onChange={(e) => set("text", e.target.value)} className="bg-muted" dir="auto" data-testid="input-question-text" />
       <div className="grid grid-cols-2 gap-3">
-        <Input placeholder="الخيار أ" value={state.optA} onChange={(e) => set("optA", e.target.value)} className="bg-muted" dir="auto" data-testid="input-option-a" />
-        <Input placeholder="الخيار ب" value={state.optB} onChange={(e) => set("optB", e.target.value)} className="bg-muted" dir="auto" data-testid="input-option-b" />
-        <Input placeholder="الخيار ج" value={state.optC} onChange={(e) => set("optC", e.target.value)} className="bg-muted" dir="auto" data-testid="input-option-c" />
-        <Input placeholder="الخيار د" value={state.optD} onChange={(e) => set("optD", e.target.value)} className="bg-muted" dir="auto" data-testid="input-option-d" />
+        <Input placeholder="Option A" value={state.optA} onChange={(e) => set("optA", e.target.value)} className="bg-muted" dir="auto" data-testid="input-option-a" />
+        <Input placeholder="Option B" value={state.optB} onChange={(e) => set("optB", e.target.value)} className="bg-muted" dir="auto" data-testid="input-option-b" />
+        <Input placeholder="Option C" value={state.optC} onChange={(e) => set("optC", e.target.value)} className="bg-muted" dir="auto" data-testid="input-option-c" />
+        <Input placeholder="Option D" value={state.optD} onChange={(e) => set("optD", e.target.value)} className="bg-muted" dir="auto" data-testid="input-option-d" />
       </div>
       <div className="flex gap-3 flex-wrap">
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">الإجابة الصحيحة</label>
+          <label className="text-xs text-muted-foreground block mb-1">Correct answer</label>
           <div className="flex gap-2" dir="ltr">
             {(["A", "B", "C", "D"] as const).map((opt) => (
-              <button key={opt} onClick={() => set("correct", opt)} className={`w-10 h-10 rounded-md font-bold text-sm transition-colors ${state.correct === opt ? "bg-[#CDB58B] text-primary-foreground" : "bg-muted text-muted-foreground"}`} data-testid={`button-correct-${opt}`}>{opt}</button>
+              <button key={opt} onClick={() => set("correct", opt)} className={`w-10 h-10 rounded-md font-bold text-sm transition-colors ${state.correct === opt ? "bg-gold text-primary-foreground" : "bg-muted text-muted-foreground"}`} data-testid={`button-correct-${opt}`}>{opt}</button>
             ))}
           </div>
         </div>
         <div className="flex-1 min-w-[120px]">
-          <label className="text-xs text-muted-foreground block mb-1">التصنيف</label>
-          <Input placeholder="اختياري" value={state.category} onChange={(e) => set("category", e.target.value)} className="bg-muted" dir="auto" data-testid="input-category" />
+          <label className="text-xs text-muted-foreground block mb-1">Category</label>
+          <Input placeholder="Optional" value={state.category} onChange={(e) => set("category", e.target.value)} className="bg-muted" dir="auto" data-testid="input-category" />
         </div>
         <div className="w-24">
-          <label className="text-xs text-muted-foreground block mb-1">الوقت (ث)</label>
+          <label className="text-xs text-muted-foreground block mb-1">Time (s)</label>
           <Input type="number" placeholder="30" value={state.timeLimit} onChange={(e) => set("timeLimit", e.target.value ? Number(e.target.value) : "")} className="bg-muted" dir="ltr" data-testid="input-time" />
         </div>
       </div>
       <div className="flex gap-2 pt-2">
         <Button onClick={onSubmit} disabled={isPending} data-testid="button-save-question">
-          <Save className="w-4 h-4 ml-1" /> {isEdit ? "تحديث" : "حفظ"}
+          <Save className="w-4 h-4 ml-1" /> {isEdit ? "Update" : "Save"}
         </Button>
         <Button variant="ghost" onClick={onCancel} data-testid="button-cancel">
-          <X className="w-4 h-4 ml-1" /> إلغاء
+          <X className="w-4 h-4 ml-1" /> Cancel
         </Button>
       </div>
     </div>
@@ -130,7 +123,6 @@ function isFormValid(s: EditState) {
 export default function AdminScreen() {
   const queryClient = useQueryClient();
   const { data: questions = [], isLoading } = useQuery<Question[]>({ queryKey: ["/api/questions"] });
-  const { data: sessionsData = [] } = useQuery<SessionWinners[]>({ queryKey: ["/api/sessions/winners"] });
   const [showNewForm, setShowNewForm] = useState(false);
   const [newState, setNewState] = useState<EditState>({ ...emptyState });
   const [editId, setEditId] = useState<string | null>(null);
@@ -180,7 +172,7 @@ export default function AdminScreen() {
       if (lines.length < 2) return;
 
       const header = lines[0].toLowerCase().split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-      const hasContext = header.includes("context") || header.includes("مقدمة");
+      const hasContext = header.includes("context") || header.includes("intro");
       const qs: any[] = [];
 
       for (let i = 1; i < lines.length; i++) {
@@ -225,75 +217,41 @@ export default function AdminScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6" dir="rtl" data-testid="admin-screen">
+    <div className="min-h-screen bg-background text-foreground p-6" dir="ltr" data-testid="admin-screen">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <Link href="/host">
             <Button variant="ghost" size="icon" data-testid="button-back-host"><ArrowRight className="w-5 h-5" /></Button>
           </Link>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-[#CDB58B]">إدارة الأسئلة</h1>
-            <p className="text-sm text-muted-foreground">{questions.length} سؤال</p>
+            <h1 className="text-2xl font-bold text-gold">Manage Questions</h1>
+            <p className="text-sm text-muted-foreground">{questions.length} questions</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <input type="file" accept=".csv" ref={fileRef} className="hidden" onChange={handleCSVImport} />
             <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()} data-testid="button-import-csv">
-              <Upload className="w-4 h-4 ml-1" /> استيراد
+              <Upload className="w-4 h-4 ml-1" /> Import
             </Button>
             <Button variant="secondary" size="sm" onClick={handleExport} data-testid="button-export-json">
-              <Download className="w-4 h-4 ml-1" /> تصدير
+              <Download className="w-4 h-4 ml-1" /> Export
             </Button>
             <Button size="sm" onClick={() => { setEditId(null); setNewState({ ...emptyState }); setShowNewForm(true); }} data-testid="button-add-question">
-              <Plus className="w-4 h-4 ml-1" /> إضافة
+              <Plus className="w-4 h-4 ml-1" /> Add
             </Button>
           </div>
         </div>
 
-        {sessionsData.length > 0 && sessionsData.some(s => s.winners.length > 0) && (
-          <div className="mb-6 space-y-4">
-            <h2 className="text-xl font-bold text-[#CDB58B] flex items-center gap-2">
-              <Trophy className="w-5 h-5" /> الفائزون
-            </h2>
-            {sessionsData.filter(s => s.winners.length > 0).map((session) => (
-              <div key={session.sessionId} className="bg-card rounded-xl p-4 border border-[#CDB58B]/20">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs text-muted-foreground" dir="ltr">{session.sessionId.slice(0, 8)}...</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${session.phase === "END" ? "bg-green-500/15 text-green-400" : "bg-yellow-500/15 text-yellow-400"}`}>
-                    {session.phase === "END" ? "انتهت" : "جارية"} — {session.playerCount} لاعب
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {session.winners.map((w) => (
-                    <div key={w.rank} className={`flex items-center gap-3 p-3 rounded-lg ${w.rank === 1 ? "bg-[#CDB58B]/10 border border-[#CDB58B]/20" : "bg-muted/30"}`} data-testid={`winner-entry-${w.rank}`}>
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${w.rank === 1 ? "bg-[#CDB58B] text-black" : w.rank === 2 ? "bg-gray-400 text-white" : "bg-orange-500 text-white"}`}>
-                        {w.rank}
-                      </span>
-                      <div className="flex-1">
-                        <p className="font-semibold" dir="auto">{w.name}</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1" dir="ltr">
-                          <Phone className="w-3 h-3" /> {w.phone || "—"}
-                        </p>
-                      </div>
-                      <span className="font-bold text-[#CDB58B] tabular-nums" dir="ltr">{w.score.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="mb-4 p-4 bg-card/50 rounded-xl border border-border/30 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground/80 mb-1">صيغة ملف CSV</p>
+          <p className="font-medium text-foreground/80 mb-1">CSV file format</p>
           <code className="text-xs block mb-1" dir="ltr">text, optionA, optionB, optionC, optionD, correct(A/B/C/D), category</code>
           <code className="text-xs block" dir="ltr">context, text, optionA, optionB, optionC, optionD, correct, category</code>
-          <p className="text-xs mt-1">عمود context اختياري - إذا وُجد في العنوان يكون العمود الأول</p>
+          <p className="text-xs mt-1">The context column is optional — if present in the header it must be the first column</p>
         </div>
 
         <AnimatePresence>
           {showNewForm && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-card rounded-xl p-6 border border-[#CDB58B]/30 mb-6 overflow-hidden">
-              <h3 className="font-semibold mb-4">سؤال جديد</h3>
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-card rounded-xl p-6 border border-gold/30 mb-6 overflow-hidden">
+              <h3 className="font-semibold mb-4">New question</h3>
               <QuestionForm
                 state={newState}
                 onChange={setNewState}
@@ -308,21 +266,21 @@ export default function AdminScreen() {
 
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-[#CDB58B]/30 border-t-[#CDB58B] rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
           </div>
         ) : questions.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-muted-foreground text-lg">لا توجد أسئلة بعد</p>
-            <p className="text-sm text-muted-foreground mt-1">أضف أسئلة أو استوردها من ملف CSV</p>
+            <p className="text-muted-foreground text-lg">No questions yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Add questions or import them from a CSV file</p>
           </div>
         ) : (
           <div className="space-y-3">
             {questions.map((q, i) => (
-              <motion.div key={q.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className={`bg-card rounded-xl p-4 border ${editId === q.id ? "border-[#CDB58B]/50" : "border-border/30"}`}>
+              <motion.div key={q.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className={`bg-card rounded-xl p-4 border ${editId === q.id ? "border-gold/50" : "border-border/30"}`}>
                 <AnimatePresence mode="wait">
                   {editId === q.id ? (
                     <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                      <h3 className="font-semibold mb-3 text-[#CDB58B] text-sm">تعديل السؤال س{i + 1}</h3>
+                      <h3 className="font-semibold mb-3 text-gold text-sm">Edit Question Q{i + 1}</h3>
                       <QuestionForm
                         state={editState}
                         onChange={setEditState}
@@ -336,8 +294,8 @@ export default function AdminScreen() {
                     <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="flex-1">
-                          <span className="text-xs text-muted-foreground ml-2">س{i + 1}</span>
-                          {q.category && <span className="text-xs px-2 py-0.5 bg-[#CDB58B]/10 text-[#CDB58B] rounded-full">{q.category}</span>}
+                          <span className="text-xs text-muted-foreground ml-2">Q{i + 1}</span>
+                          {q.category && <span className="text-xs px-2 py-0.5 bg-gold/10 text-gold rounded-full">{q.category}</span>}
                           {q.context && <p className="text-xs text-muted-foreground mt-1 italic" dir="auto">📋 {q.context}</p>}
                           <p className="font-medium mt-1" dir="auto" data-testid={`text-question-${q.id}`}>{q.text}</p>
                         </div>

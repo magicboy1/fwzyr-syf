@@ -87,15 +87,12 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
+  // NOTE: game state is in-memory, so this MUST run as a SINGLE process.
+  // Do not use a PM2/Node cluster or multiple replicas behind a load balancer —
+  // players would land on instances that don't hold their session.
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  const host = process.env.HOST || "0.0.0.0";
+  httpServer.listen(port, host, () => {
+    log(`serving on ${host}:${port}`);
+  });
 })();

@@ -42,5 +42,6 @@ waitForPort = 5000
 [userenv]
 
 [userenv.shared]
-ADMIN_PASSWORD = "hossam2026"
+# ADMIN_PASSWORD must be set as a Replit Secret (Tools > Secrets), NOT here.
+# Committing it to the repo leaks it to anyone with the repo URL.
 NODE_OPTIONS = "--max-old-space-size=512"
