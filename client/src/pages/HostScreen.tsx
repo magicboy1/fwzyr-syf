@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import type { Question, GamePhase } from "@shared/schema";
+import { REGIONS } from "@shared/schema";
+
+const REGION_LABEL: Record<string, string> = Object.fromEntries(REGIONS.map((r) => [r.key, r.label]));
 import { Play, SkipForward, Eye, Trophy, Square, Pause, PlayCircle, RefreshCw, UserMinus, Users, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 
@@ -16,7 +19,7 @@ export default function HostScreen() {
   const [hostKey, setHostKey] = useState("");
   const [phase, setPhase] = useState<GamePhase>("LOBBY");
   const [playerCount, setPlayerCount] = useState(0);
-  const [players, setPlayers] = useState<{ id: string; name: string }[]>([]);
+  const [players, setPlayers] = useState<{ id: string; name: string; region?: string }[]>([]);
   const [currentQ, setCurrentQ] = useState(-1);
   const [totalQ, setTotalQ] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
@@ -322,7 +325,12 @@ export default function HostScreen() {
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {players.map((p) => (
                 <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30">
-                  <span className="text-sm font-medium" dir="auto">{p.name}</span>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm font-medium truncate" dir="auto">{p.name}</span>
+                    {p.region && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gold/15 text-gold shrink-0">{REGION_LABEL[p.region] || p.region}</span>
+                    )}
+                  </span>
                   <Button size="icon" variant="ghost" onClick={() => handleKick(p.id)} data-testid={`button-kick-${p.id}`}>
                     <UserMinus className="w-4 h-4 text-red-400" />
                   </Button>

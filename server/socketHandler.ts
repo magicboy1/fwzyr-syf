@@ -295,7 +295,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         // Send only the new player (not the whole list) so a join rush of N
         // players stays O(N) instead of O(N²) in serialized payload.
         const joinPayload = {
-          player: { id: player.id, name: player.name },
+          player: { id: player.id, name: player.name, region: player.region },
           playerCount,
         };
         io.to(`display:${session.id}`).emit("game:playerJoined", joinPayload);

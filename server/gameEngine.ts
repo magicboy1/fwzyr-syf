@@ -671,10 +671,10 @@ export function getPlayerCount(sessionId: string): number {
   return session ? Object.keys(session.players).length : 0;
 }
 
-export function getPlayerList(sessionId: string): { id: string; name: string }[] {
+export function getPlayerList(sessionId: string): { id: string; name: string; region: string }[] {
   const session = sessions.get(sessionId);
   if (!session) return [];
-  return Object.values(session.players).map((p) => ({ id: p.id, name: p.name }));
+  return Object.values(session.players).map((p) => ({ id: p.id, name: p.name, region: p.region }));
 }
 
 export function getAllSessions(): GameSession[] {

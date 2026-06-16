@@ -982,9 +982,9 @@ function RegionWinners({ stats, isPortrait, fill = false }: { stats: FinalStats;
           transition={{ delay: 0.3 + ri * 0.15, type: "spring", bounce: 0.3 }}
           className="bg-card/60 rounded-2xl border border-gold/25 flex flex-col overflow-hidden min-h-0"
         >
-          <div className="text-center px-3 py-2 bg-gold/10 border-b border-gold/25 shrink-0">
-            <h3 className="ds-secondary font-bold text-gold leading-tight">{r.label}</h3>
-            <p className="ds-small text-gold-accent font-semibold">{r.winners.length} of {r.winnerCount} winners</p>
+          <div className="flex items-baseline justify-center gap-2 px-3 py-2 bg-gold/10 border-b border-gold/25 shrink-0">
+            <h3 className="ds-small font-bold text-gold leading-tight">{r.label}</h3>
+            <p className="ds-winner text-gold-accent font-semibold">{r.winners.length}/{r.winnerCount}</p>
           </div>
           <ol
             className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1"
@@ -992,9 +992,9 @@ function RegionWinners({ stats, isPortrait, fill = false }: { stats: FinalStats;
           >
             {r.winners.map((w, i) => (
               <li key={w.playerId} className="flex items-center gap-2 rounded-lg px-2 py-0.5 odd:bg-white/[0.03]">
-                <span className={`w-6 text-center font-bold ds-small ${i < 3 ? "text-gold-accent" : "text-muted-foreground"}`} dir="ltr">{i + 1}</span>
-                <span className="flex-1 truncate font-medium ds-small" dir="auto">{w.name}</span>
-                <span className="text-gold font-bold ds-small" dir="ltr">{w.score.toLocaleString()}</span>
+                <span className={`w-6 text-center font-bold ds-winner ${i < 3 ? "text-gold-accent" : "text-muted-foreground"}`} dir="ltr">{i + 1}</span>
+                <span className="flex-1 truncate font-medium ds-winner" dir="auto">{w.name}</span>
+                <span className="text-gold font-bold ds-winner" dir="ltr">{w.score.toLocaleString()}</span>
               </li>
             ))}
             {r.winners.length === 0 && (
