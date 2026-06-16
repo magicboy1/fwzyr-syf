@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { type Server } from "http";
 import { setupSocketIO, forceEndSession } from "./socketHandler";
 import { sampleQuestions } from "./sampleQuestions";
-import { randomUUID, timingSafeEqual } from "crypto";
+import { randomUUID, timingSafeEqual, createHmac } from "crypto";
 import type { Question } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
@@ -47,27 +47,36 @@ if (!ADMIN_PASSWORD) {
   );
 }
 
-// Random, expiring session tokens issued on successful login. This replaces the
-// previous deterministic password-hash token, which never expired and was the
-// same value for every admin forever.
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
-const validTokens = new Map<string, number>(); // token -> expiresAt
+// Stateless HMAC-signed session tokens: "<expiry>.<hmac(expiry)>". Verified
+// without any server-side store, so they SURVIVE server restarts/redeploys
+// (the admin stays logged in instead of being kicked out every restart). Still
+// unforgeable (needs the secret) and still expires.
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const AUTH_SECRET = process.env.AUTH_SECRET || ADMIN_PASSWORD || "";
+
+function signExpiry(exp: number): string {
+  return createHmac("sha256", AUTH_SECRET).update(String(exp)).digest("hex");
+}
 
 function issueToken(): string {
-  const token = randomUUID();
-  validTokens.set(token, Date.now() + SESSION_TTL_MS);
-  return token;
+  const exp = Date.now() + SESSION_TTL_MS;
+  return `${exp}.${signExpiry(exp)}`;
 }
 
 function isValidToken(token: unknown): boolean {
-  if (typeof token !== "string") return false;
-  const exp = validTokens.get(token);
-  if (!exp) return false;
-  if (Date.now() > exp) {
-    validTokens.delete(token);
+  if (!AUTH_SECRET || typeof token !== "string") return false;
+  const dot = token.indexOf(".");
+  if (dot < 1) return false;
+  const exp = Number(token.slice(0, dot));
+  const sig = token.slice(dot + 1);
+  if (!Number.isFinite(exp) || Date.now() > exp) return false;
+  const expected = signExpiry(exp);
+  if (sig.length !== expected.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+  } catch {
     return false;
   }
-  return true;
 }
 
 function passwordMatches(input: unknown): boolean {
