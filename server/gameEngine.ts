@@ -51,7 +51,11 @@ setInterval(reapStaleSessions, 10 * 60 * 1000).unref?.();
 // the socket rooms. Note: question auto-advance timers are NOT restored — after
 // a restart the host drives the round manually (reveal/next still work).
 // ---------------------------------------------------------------------------
-const SESSIONS_FILE = path.join(process.cwd(), "data", "sessions.json");
+// Sessions persist to DATA_DIR if set (point this at a Railway/host VOLUME so
+// state survives restarts & redeploys), otherwise to ./data. Question bank stays
+// in the repo at ./data/questions.json regardless.
+const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
+const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 const SAVE_INTERVAL_MS = 2000;
 
 function serializeSessions(): string {
