@@ -15,6 +15,11 @@ import { Link } from "wouter";
 export default function HostScreen() {
   const [, navigate] = useLocation();
   const [connected, setConnected] = useState(false);
+  // true while we attempt to restore a saved session, so we show a loader
+  // instead of briefly flashing the "create new game" screen.
+  const [reconnecting, setReconnecting] = useState(
+    () => typeof window !== "undefined" && !!(localStorage.getItem("fawazeer_hostKey") && localStorage.getItem("fawazeer_hostSession"))
+  );
   const [sessionId, setSessionId] = useState("");
   const [hostKey, setHostKey] = useState("");
   const [phase, setPhase] = useState<GamePhase>("LOBBY");
@@ -54,7 +59,9 @@ export default function HostScreen() {
     const savedSession = localStorage.getItem("fawazeer_hostSession");
     if (savedHostKey && savedSession) {
       const socket = getSocket();
+      const safety = setTimeout(() => setReconnecting(false), 8000);
       socket.emit("host:reconnect", { sessionId: savedSession, hostKey: savedHostKey }, (res: any) => {
+        clearTimeout(safety);
         if (res.success) {
           setSessionId(res.session.id);
           setHostKey(savedHostKey);
@@ -64,6 +71,7 @@ export default function HostScreen() {
           setPlayers(res.session.players || []);
           setConnected(true);
         }
+        setReconnecting(false);
       });
     }
   }, []);
@@ -158,6 +166,15 @@ export default function HostScreen() {
   const handleKick = (playerId: string) => emit("host:kick", { playerId });
 
   const displayUrl = typeof window !== "undefined" ? `${window.location.origin}/display?s=${sessionId}` : "";
+
+  if (reconnecting) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6" dir="ltr" data-testid="host-connecting">
+        <div className="w-10 h-10 border-4 border-gold/30 border-t-gold rounded-full animate-spin mb-4" />
+        <p className="text-muted-foreground">Reconnecting to your game…</p>
+      </div>
+    );
+  }
 
   if (!connected) {
     return (
