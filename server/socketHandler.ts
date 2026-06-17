@@ -11,6 +11,7 @@ import {
   nextQuestion,
   startQuestionTimer,
   getQuestionForPlayer,
+  getBigScreenQuestion,
   submitAnswer,
   endQuestion,
   getReveal,
@@ -28,6 +29,7 @@ import { log } from "./index";
 
 const timers = new Map<string, NodeJS.Timeout>();
 const contextTimers = new Map<string, NodeJS.Timeout>();
+const revealTimers = new Map<string, NodeJS.Timeout>();
 const answerUpdateTimers = new Map<string, NodeJS.Timeout>();
 const CONTEXT_DURATION = 6000;
 // Coalesce answerUpdate broadcasts: at high player counts, emitting on every
@@ -39,6 +41,8 @@ function clearSessionTimers(sessionId: string) {
   if (t) { clearTimeout(t); timers.delete(sessionId); }
   const ct = contextTimers.get(sessionId);
   if (ct) { clearTimeout(ct); contextTimers.delete(sessionId); }
+  const rt = revealTimers.get(sessionId);
+  if (rt) { clearTimeout(rt); revealTimers.delete(sessionId); }
   const at = answerUpdateTimers.get(sessionId);
   if (at) { clearTimeout(at); answerUpdateTimers.delete(sessionId); }
 }
@@ -164,13 +168,22 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       serverTime: Date.now(),
     });
 
+    scheduleQuestionEnd(sessionId, (question.timeLimit + 1) * 1000);
+  }
+
+  // After `ms`, end the question, emit questionEnd, then auto-reveal 1.5s later.
+  // Used both by the normal question timer and by host:resume so the auto-reveal
+  // fires either way. The reveal timeout is tracked so it can be cancelled if the
+  // host advances manually (otherwise a stale reveal could land over the next q).
+  function scheduleQuestionEnd(sessionId: string, ms: number) {
     const timer = setTimeout(() => {
       timers.delete(sessionId);
       try {
         endQuestion(sessionId);
         io.to(`session:${sessionId}`).emit("game:questionEnd");
 
-        setTimeout(() => {
+        const rt = setTimeout(() => {
+          revealTimers.delete(sessionId);
           try {
             const sess = getSession(sessionId);
             const reveal = getReveal(sessionId);
@@ -182,10 +195,11 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
             console.error("Error in reveal timeout:", e);
           }
         }, 1500);
+        revealTimers.set(sessionId, rt);
       } catch (e) {
         console.error("Error in question end timeout:", e);
       }
-    }, (question.timeLimit + 1) * 1000);
+    }, ms);
     timers.set(sessionId, timer);
   }
 
@@ -237,6 +251,8 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
             id: session.id,
             phase: session.phase,
             currentQuestionIndex: session.currentQuestionIndex,
+            totalQuestions: session.questions.length,
+            paused: session.paused,
             playerCount: getPlayerCount(session.id),
             players: getPlayerList(session.id),
           },
@@ -256,13 +272,22 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         currentSessionId = session.id;
         socket.join(`session:${session.id}`);
         socket.join(`display:${session.id}`);
-        callback?.({
+        const res: any = {
           success: true,
           sessionId: session.id,
           phase: session.phase,
           playerCount: getPlayerCount(session.id),
           players: getPlayerList(session.id),
-        });
+        };
+        // Hydrate a display that opens/refreshes mid-question so it isn't blank.
+        if (session.phase === "QUESTION") {
+          res.question = getBigScreenQuestion(session.id);
+          const rem = session.timerStartedAt && session.timerDuration
+            ? session.timerDuration * 1000 - (Date.now() - session.timerStartedAt)
+            : 0;
+          res.timeLeft = Math.max(0, rem / 1000);
+        }
+        callback?.(res);
       } catch (e: any) {
         callback?.({ success: false, error: e.message });
       }
@@ -339,6 +364,10 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           response.serverTime = Date.now();
           response.timerStartedAt = session.timerStartedAt;
           response.timerDuration = session.timerDuration;
+          const rem = session.timerStartedAt && session.timerDuration
+            ? session.timerDuration * 1000 - (Date.now() - session.timerStartedAt)
+            : 0;
+          response.timeLeft = Math.max(0, rem / 1000);
           response.alreadyAnswered = session.answersIndex.has(`${data.playerId}:${session.currentQuestionIndex}`);
         }
 
@@ -504,27 +533,19 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         }
 
         if (resumeGame(data.sessionId)) {
+          const remaining = session.timerStartedAt && session.timerDuration
+            ? session.timerDuration * 1000 - (Date.now() - session.timerStartedAt)
+            : 0;
           io.to(`session:${data.sessionId}`).emit("game:resumed", {
             serverTime: Date.now(),
             timerStartedAt: session.timerStartedAt,
             timerDuration: session.timerDuration,
+            timeLeft: Math.max(0, remaining / 1000),
           });
 
-          if (session.timerStartedAt && session.timerDuration) {
-            const elapsed = Date.now() - session.timerStartedAt;
-            const remaining = session.timerDuration * 1000 - elapsed;
-            if (remaining > 0) {
-              const timer = setTimeout(() => {
-                timers.delete(data.sessionId);
-                try {
-                  endQuestion(data.sessionId);
-                  io.to(`session:${data.sessionId}`).emit("game:questionEnd");
-                } catch (e) {
-                  console.error("Error in resume timeout:", e);
-                }
-              }, remaining);
-              timers.set(data.sessionId, timer);
-            }
+          if (remaining > 0) {
+            // Reuse the normal end+auto-reveal chain so resume reveals too.
+            scheduleQuestionEnd(data.sessionId, remaining);
           }
           callback?.({ success: true });
         } else {

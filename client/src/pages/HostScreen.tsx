@@ -67,6 +67,8 @@ export default function HostScreen() {
           setHostKey(savedHostKey);
           setPhase(res.session.phase);
           setCurrentQ(res.session.currentQuestionIndex);
+          if (res.session.totalQuestions) setTotalQ(res.session.totalQuestions);
+          setPaused(!!res.session.paused);
           setPlayerCount(res.session.playerCount);
           setPlayers(res.session.players || []);
           setConnected(true);

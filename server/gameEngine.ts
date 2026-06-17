@@ -21,6 +21,17 @@ function generateHostKey(): string {
   return randomUUID();
 }
 
+// Deterministic ranking: score, then best streak, then fastest correct answer,
+// then name. Prevents random ordering at a region's prize cutoff on ties.
+function rankComparator(a: Player, b: Player): number {
+  if (b.score !== a.score) return b.score - a.score;
+  if (b.bestStreak !== a.bestStreak) return b.bestStreak - a.bestStreak;
+  const af = a.fastestCorrectTime ?? Infinity;
+  const bf = b.fastestCorrectTime ?? Infinity;
+  if (af !== bf) return af - bf;
+  return a.name.localeCompare(b.name);
+}
+
 const sessions = new Map<string, GameSession>();
 
 // Bounds so anyone calling host:create (it is unauthenticated by design) cannot
@@ -276,6 +287,23 @@ export function startQuestionTimer(sessionId: string): void {
   session.timerStartedAt = Date.now();
 }
 
+// Read-only current question for the big screen (no side effects). Used to
+// hydrate a display that joins/refreshes mid-question so it isn't blank.
+export function getBigScreenQuestion(sessionId: string): QuestionForBigScreen | null {
+  const session = sessions.get(sessionId);
+  if (!session || session.currentQuestionIndex < 0) return null;
+  const q = session.questions[session.currentQuestionIndex];
+  if (!q) return null;
+  return {
+    index: session.currentQuestionIndex,
+    context: q.context || undefined,
+    text: q.text,
+    totalQuestions: session.questions.length,
+    timeLimit: q.timeLimit || session.defaultTimeLimit,
+    isDoublePoints: session.currentQuestionIndex === session.doublePointsIndex,
+  };
+}
+
 export function getQuestionForPlayer(sessionId: string): QuestionForPlayer | null {
   const session = sessions.get(sessionId);
   if (!session || session.phase !== "QUESTION") return null;
@@ -307,7 +335,7 @@ export function submitAnswer(
   answer: "A" | "B" | "C" | "D"
 ): PlayerFeedback | null {
   const session = sessions.get(sessionId);
-  if (!session || session.phase !== "QUESTION") return null;
+  if (!session || session.phase !== "QUESTION" || session.paused) return null;
 
   const player = session.players[playerId];
   if (!player) return null;
@@ -441,7 +469,7 @@ export function getLeaderboard(sessionId: string): LeaderboardEntry[] {
   if (!session) return [];
 
   const entries: LeaderboardEntry[] = Object.values(session.players)
-    .sort((a, b) => b.score - a.score)
+    .sort(rankComparator)
     .map((p, i) => ({
       playerId: p.id,
       name: p.name,
@@ -555,24 +583,28 @@ export function endGame(sessionId: string): FinalStats | null {
   }
 
   let hardestQuestion: FinalStats["hardestQuestion"] = null;
-  if (session.questions.length > 0) {
+  {
     let lowestPct = 101;
-    let hardestIdx = 0;
+    let hardestIdx = -1;
+    // Only consider questions that were actually reached (have answer rows).
+    // Otherwise ending the game early reports an unasked question as "hardest".
     for (let i = 0; i < session.questions.length; i++) {
       const qAnswers = answers.filter((a) => a.questionIndex === i);
-      const total = qAnswers.length || 1;
+      if (qAnswers.length === 0) continue;
       const correctCount = qAnswers.filter((a) => a.correct).length;
-      const pct = (correctCount / total) * 100;
+      const pct = (correctCount / qAnswers.length) * 100;
       if (pct < lowestPct) {
         lowestPct = pct;
         hardestIdx = i;
       }
     }
-    hardestQuestion = {
-      questionIndex: hardestIdx,
-      questionText: session.questions[hardestIdx].text,
-      correctPercent: Math.round(lowestPct),
-    };
+    if (hardestIdx >= 0) {
+      hardestQuestion = {
+        questionIndex: hardestIdx,
+        questionText: session.questions[hardestIdx].text,
+        correctPercent: Math.round(lowestPct),
+      };
+    }
   }
 
   const answeredEntries = answers.filter((a) => a.answer !== null);
@@ -691,7 +723,7 @@ export function deleteSession(sessionId: string): boolean {
 export function getWinnersWithPhone(sessionId: string): { rank: number; name: string; phone: string; score: number }[] {
   const session = sessions.get(sessionId);
   if (!session) return [];
-  const sorted = Object.values(session.players).sort((a, b) => b.score - a.score);
+  const sorted = Object.values(session.players).sort(rankComparator);
   return sorted.slice(0, 3).map((p, i) => ({
     rank: i + 1,
     name: p.name,
@@ -710,7 +742,7 @@ export function getRegionWinnersWithPhone(sessionId: string): {
 }[] {
   const session = sessions.get(sessionId);
   if (!session) return [];
-  const sorted = Object.values(session.players).sort((a, b) => b.score - a.score);
+  const sorted = Object.values(session.players).sort(rankComparator);
   return REGIONS.map((r) => ({
     key: r.key,
     label: r.label,

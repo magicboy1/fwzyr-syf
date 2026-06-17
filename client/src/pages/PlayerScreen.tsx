@@ -54,10 +54,12 @@ export default function PlayerScreen() {
           setPlayerName(res.playerName);
           setScore(res.score || 0);
           if (res.phase === "QUESTION") {
-            setPhase("QUESTION");
             setQuestion(res.question);
             setTimeLeft(res.timeLeft || 0);
             setGameStarted(true);
+            // if they already answered this question, show the waiting state
+            // instead of the answer buttons (a duplicate would be rejected anyway)
+            setPhase(res.alreadyAnswered ? "ANSWERED" : "QUESTION");
           } else if (res.phase === "END") {
             setPhase("END");
           } else {
@@ -571,7 +573,7 @@ export default function PlayerScreen() {
                 transition={{ delay: 0.5, type: "spring" }}
                 className="text-gold font-semibold mb-2"
               >
-                Streak bonus! +500
+                Streak bonus!
               </motion.p>
             )}
 

@@ -84,6 +84,13 @@ export default function DisplayScreen() {
         setPhase(res.phase || "LOBBY");
         setPlayerCount(res.playerCount || 0);
         setPlayers(res.players || []);
+        // hydrate if the screen opened/refreshed mid-question (else it's blank)
+        if (res.phase === "QUESTION" && res.question) {
+          setQuestion(res.question);
+          setTimerDuration(res.question.timeLimit);
+          setTimeLeft(res.timeLeft || 0);
+          startTimer(res.timeLeft || 0);
+        }
       } else {
         setPhase("ERROR");
       }
