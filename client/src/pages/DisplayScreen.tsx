@@ -241,6 +241,8 @@ export default function DisplayScreen() {
       setContextData(null);
       setAnsweredCount(0);
       setTotalPlayers(0);
+      setPlayerCount(0);
+      setPlayers([]);
     });
 
     socket.on("game:doublePoints", () => {
