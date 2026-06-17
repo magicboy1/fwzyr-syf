@@ -79,7 +79,7 @@ export default function DisplayScreen() {
     setSessionId(sId);
 
     const socket = getSocket();
-    socket.emit("display:join", { sessionId: sId }, (res: any) => {
+    const joinDisplay = () => socket.emit("display:join", { sessionId: sId }, (res: any) => {
       if (res.success) {
         setPhase(res.phase || "LOBBY");
         setPlayerCount(res.playerCount || 0);
@@ -102,6 +102,9 @@ export default function DisplayScreen() {
         setPhase("ERROR");
       }
     });
+    joinDisplay();
+    // re-join automatically after the socket reconnects (e.g. server redeploy/restart)
+    socket.io.on("reconnect", joinDisplay);
 
     socket.on("game:playerJoined", (data) => {
       setPlayerCount(data.playerCount);
@@ -253,6 +256,7 @@ export default function DisplayScreen() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
+      socket.io.off("reconnect", joinDisplay);
       socket.off("game:playerJoined");
       socket.off("game:playerLeft");
       socket.off("game:answerUpdate");

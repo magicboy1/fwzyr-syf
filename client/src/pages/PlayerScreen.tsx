@@ -181,9 +181,33 @@ export default function PlayerScreen() {
 
     socket.on("game:doublePoints", () => {});
 
+    // After the socket reconnects (e.g. server redeploy/restart) re-join the
+    // game automatically so the player doesn't have to refresh their phone.
+    const onReconnect = () => {
+      const pid = localStorage.getItem("fawazeer_playerId");
+      if (!pid) return;
+      socket.emit("player:reconnect", { sessionId, playerId: pid }, (res: any) => {
+        if (!res?.success) return;
+        setScore(res.score || 0);
+        if (res.phase === "QUESTION") {
+          setQuestion(res.question);
+          setTimeLeft(res.timeLeft || 0);
+          setGameStarted(true);
+          setPhase(res.alreadyAnswered ? "ANSWERED" : "QUESTION");
+        } else if (res.phase === "END") {
+          setPhase("END");
+        } else {
+          setPhase("WAITING");
+          setGameStarted(true);
+        }
+      });
+    };
+    socket.io.on("reconnect", onReconnect);
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
+      socket.io.off("reconnect", onReconnect);
       socket.off("game:questionStart");
       socket.off("game:questionEnd");
       socket.off("game:reveal");

@@ -134,7 +134,24 @@ export default function HostScreen() {
       setIsLastQuestion(false);
     });
 
+    // After the socket reconnects (e.g. server redeploy/restart) re-attach the
+    // host to the session rooms so controls keep working without a refresh.
+    const onReconnect = () => {
+      if (!sessionId || !hostKey) return;
+      socket.emit("host:reconnect", { sessionId, hostKey }, (res: any) => {
+        if (!res?.success) return;
+        setPhase(res.session.phase);
+        setCurrentQ(res.session.currentQuestionIndex);
+        if (res.session.totalQuestions) setTotalQ(res.session.totalQuestions);
+        setPaused(!!res.session.paused);
+        setPlayerCount(res.session.playerCount);
+        setPlayers(res.session.players || []);
+      });
+    };
+    socket.io.on("reconnect", onReconnect);
+
     return () => {
+      socket.io.off("reconnect", onReconnect);
       socket.off("game:playerJoined");
       socket.off("game:playerLeft");
       socket.off("game:questionStart");
