@@ -14,6 +14,10 @@ import AdminScreen from "@/pages/AdminScreen";
 import WinnersScreen from "@/pages/WinnersScreen";
 import AdminGate from "@/components/AdminGate";
 
+function ProtectedHome() {
+  return <AdminGate><HomePage /></AdminGate>;
+}
+
 function ProtectedHost() {
   return <AdminGate><HostScreen /></AdminGate>;
 }
@@ -29,7 +33,7 @@ function ProtectedWinners() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={HomePage} />
+      <Route path="/" component={ProtectedHome} />
       <Route path="/display" component={DisplayScreen} />
       <Route path="/join" component={PlayerScreen} />
       <Route path="/host" component={ProtectedHost} />
