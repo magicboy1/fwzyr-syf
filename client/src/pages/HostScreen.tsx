@@ -159,10 +159,6 @@ export default function HostScreen() {
 
   const displayUrl = typeof window !== "undefined" ? `${window.location.origin}/display?s=${sessionId}` : "";
 
-  const openDisplay = () => {
-    window.open(displayUrl, "_blank");
-  };
-
   if (!connected) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6" dir="ltr" data-testid="host-setup">
@@ -225,9 +221,10 @@ export default function HostScreen() {
 
         <div className="bg-card rounded-xl p-4 border border-border/30 mb-6">
           <p className="text-sm text-muted-foreground mb-2">Main Screen</p>
-          <Button onClick={openDisplay} variant="secondary" className="w-full" data-testid="button-open-display">
-            Open Main Screen
+          <Button asChild variant="secondary" className="w-full" data-testid="button-open-display">
+            <a href={displayUrl} target="aljeel_display" rel="noopener noreferrer">Open Main Screen</a>
           </Button>
+          <p className="text-xs text-muted-foreground mt-2 break-all" dir="ltr" data-testid="text-display-url">{displayUrl}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
