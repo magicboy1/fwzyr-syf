@@ -532,7 +532,7 @@ export function getReveal(sessionId: string): QuestionReveal | null {
     streak: a.streak,
   }));
 
-  return {
+  const reveal: QuestionReveal = {
     questionIndex: qi,
     correct: q.correct,
     options: q.options,
@@ -543,6 +543,8 @@ export function getReveal(sessionId: string): QuestionReveal | null {
     isDoublePoints: qi === session.doublePointsIndex,
     streakPlayers,
   };
+  session.lastReveal = reveal;
+  return reveal;
 }
 
 export function showLeaderboard(sessionId: string): LeaderboardEntry[] {
@@ -550,7 +552,9 @@ export function showLeaderboard(sessionId: string): LeaderboardEntry[] {
   if (!session) return [];
   session.phase = "LEADERBOARD";
   saveRanks(sessionId);
-  return getLeaderboard(sessionId);
+  const lb = getLeaderboard(sessionId);
+  session.lastLeaderboard = lb;
+  return lb;
 }
 
 export function endGame(sessionId: string): FinalStats | null {
@@ -634,7 +638,7 @@ export function endGame(sessionId: string): FinalStats | null {
     return { key: r.key, label: r.label, winnerCount: r.winners, winners };
   });
 
-  return {
+  const stats: FinalStats = {
     fastestCorrect,
     bestStreak,
     hardestQuestion,
@@ -647,6 +651,8 @@ export function endGame(sessionId: string): FinalStats | null {
     fullLeaderboard: leaderboard,
     regionResults,
   };
+  session.lastStats = stats;
+  return stats;
 }
 
 export function pauseGame(sessionId: string): boolean {

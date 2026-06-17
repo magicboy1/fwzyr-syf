@@ -279,13 +279,20 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           playerCount: getPlayerCount(session.id),
           players: getPlayerList(session.id),
         };
-        // Hydrate a display that opens/refreshes mid-question so it isn't blank.
+        // Hydrate a display that opens/refreshes mid-game so it isn't blank.
         if (session.phase === "QUESTION") {
           res.question = getBigScreenQuestion(session.id);
           const rem = session.timerStartedAt && session.timerDuration
             ? session.timerDuration * 1000 - (Date.now() - session.timerStartedAt)
             : 0;
           res.timeLeft = Math.max(0, rem / 1000);
+        } else if (session.phase === "REVEAL" && session.lastReveal) {
+          res.reveal = session.lastReveal;
+          res.question = getBigScreenQuestion(session.id);
+        } else if (session.phase === "LEADERBOARD" && session.lastLeaderboard) {
+          res.leaderboard = session.lastLeaderboard;
+        } else if (session.phase === "END" && session.lastStats) {
+          res.stats = session.lastStats;
         }
         callback?.(res);
       } catch (e: any) {

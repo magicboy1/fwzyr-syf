@@ -19,6 +19,11 @@
   font-size: clamp(11px, 1.15vw, 24px);
   line-height: 1.3;
 }
+/* reveal/answer option text — readable on a big screen without wrapping cramped */
+.ds-option {
+  font-size: clamp(15px, 1.7vw, 32px);
+  line-height: 1.25;
+}
 
 /* LIGHT MODE */
 :root {

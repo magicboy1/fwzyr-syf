@@ -84,12 +84,19 @@ export default function DisplayScreen() {
         setPhase(res.phase || "LOBBY");
         setPlayerCount(res.playerCount || 0);
         setPlayers(res.players || []);
-        // hydrate if the screen opened/refreshed mid-question (else it's blank)
+        // hydrate if the screen opened/refreshed mid-game (else it's blank)
         if (res.phase === "QUESTION" && res.question) {
           setQuestion(res.question);
           setTimerDuration(res.question.timeLimit);
           setTimeLeft(res.timeLeft || 0);
           startTimer(res.timeLeft || 0);
+        } else if (res.phase === "REVEAL" && res.reveal) {
+          setReveal(res.reveal);
+          if (res.question) setQuestion(res.question);
+        } else if (res.phase === "LEADERBOARD" && res.leaderboard) {
+          setLeaderboard(res.leaderboard);
+        } else if (res.phase === "END" && res.stats) {
+          setStats(res.stats);
         }
       } else {
         setPhase("ERROR");
@@ -738,8 +745,8 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
                       <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                     </motion.span>
                   )}
-                  <span className={`ds-secondary font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{reveal.options?.[i] || label}</span>
-                  <span className="ds-secondary font-bold tabular-nums text-muted-foreground" dir="ltr">{reveal.percentages[label]}%</span>
+                  <span className={`ds-option font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{reveal.options?.[i] || label}</span>
+                  <span className={`ds-option font-bold tabular-nums ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="ltr">{reveal.percentages[label]}%</span>
                 </motion.div>
               );
             })}
@@ -752,45 +759,43 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="reveal-screen">
-      <div className="mb-6">
-        <p className="text-muted-foreground ds-small mb-1">Question {reveal.questionIndex + 1}</p>
-        {question && <h2 className="ds-secondary font-bold" dir="auto">{question.text}</h2>}
-      </div>
-      {reveal.isDoublePoints && (
-        <div className="text-center mb-4">
-          <span className="px-4 py-1 bg-gold/15 border border-gold/40 rounded-full text-gold ds-small font-semibold">x2 Double Points</span>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col justify-center items-center px-8 lg:px-16 py-10" data-testid="reveal-screen">
+      <div className="w-full max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <p className="text-muted-foreground ds-small mb-2">Question {reveal.questionIndex + 1}</p>
+          {question && <h2 className="ds-secondary font-bold leading-snug" dir="auto">{question.text}</h2>}
+          {reveal.isDoublePoints && (
+            <span className="inline-block mt-3 px-4 py-1 bg-gold/15 border border-gold/40 rounded-full text-gold ds-small font-semibold">x2 Double Points</span>
+          )}
         </div>
-      )}
-      <div className="grid grid-cols-2 gap-6 mb-10">
-        {OPTION_LABELS.map((label, i) => {
-          const isCorrect = label === reveal.correct;
-          const optionText = reveal.options?.[i] || label;
-          return (
-            <motion.div
-              key={label}
-              initial={{ scale: 0.8, opacity: 0, y: 20 }}
-              animate={{ scale: isCorrect ? 1.05 : 1, opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.15, type: "spring", bounce: 0.4 }}
-              className={`rounded-2xl flex items-center gap-4 relative border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-40"}`}
-              style={{ padding: "clamp(16px, 1.5vw, 36px)" }}
-              data-testid={`reveal-option-${label}`}
-            >
-              {isCorrect && (
-                <motion.span initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.6, type: "spring", bounce: 0.5 }} className="rounded-full bg-green-500 flex items-center justify-center shrink-0" style={{ width: "clamp(32px, 2.5vw, 56px)", height: "clamp(32px, 2.5vw, 56px)" }}>
-                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                </motion.span>
-              )}
-              <span className={`ds-secondary font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{optionText}</span>
-              <motion.span initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + i * 0.1 }} className="ds-secondary font-bold tabular-nums text-muted-foreground" dir="ltr">
-                {reveal.percentages[label]}%
-              </motion.span>
-            </motion.div>
-          );
-        })}
-      </div>
-      <div className="flex-1">
-        {fastestSection}
+        <div className="grid grid-cols-2 gap-5 md:gap-6">
+          {OPTION_LABELS.map((label, i) => {
+            const isCorrect = label === reveal.correct;
+            const optionText = reveal.options?.[i] || label;
+            return (
+              <motion.div
+                key={label}
+                initial={{ scale: 0.85, opacity: 0, y: 16 }}
+                animate={{ scale: isCorrect ? 1.03 : 1, opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.12, type: "spring", bounce: 0.35 }}
+                className={`rounded-2xl flex items-center gap-4 border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-50"}`}
+                style={{ padding: "clamp(18px, 1.5vw, 32px)" }}
+                data-testid={`reveal-option-${label}`}
+              >
+                {isCorrect && (
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring", bounce: 0.5 }} className="rounded-full bg-green-500 flex items-center justify-center shrink-0" style={{ width: "clamp(30px, 2.2vw, 48px)", height: "clamp(30px, 2.2vw, 48px)" }}>
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </motion.span>
+                )}
+                <span className={`ds-option font-semibold flex-1 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="auto">{optionText}</span>
+                <span className={`ds-option font-bold tabular-nums shrink-0 ${isCorrect ? "text-green-400" : "text-muted-foreground"}`} dir="ltr">
+                  {reveal.percentages[label]}%
+                </span>
+              </motion.div>
+            );
+          })}
+        </div>
+        {fastestSection && <div className="mt-8 max-w-2xl mx-auto">{fastestSection}</div>}
       </div>
     </motion.div>
   );

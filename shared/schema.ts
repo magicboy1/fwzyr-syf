@@ -70,6 +70,11 @@ export interface GameSession {
   streakAlerts: { playerName: string; streak: number }[];
   previousRanks: Record<string, number>;
   createdAt: number;
+  // Last computed views, so a display that joins/refreshes mid-phase can be
+  // hydrated (otherwise the big screen renders blank until the next host action).
+  lastReveal?: QuestionReveal | null;
+  lastLeaderboard?: LeaderboardEntry[] | null;
+  lastStats?: FinalStats | null;
 }
 
 export interface LeaderboardEntry {
