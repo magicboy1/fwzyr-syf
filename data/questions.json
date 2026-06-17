@@ -10,8 +10,7 @@
       "Take ownership and solve the issue"
     ],
     "correct": "D",
-    "category": "We Own Our Commitments",
-    "timeLimit": 20
+    "category": "We Own Our Commitments"
   },
   {
     "id": "v1q2",
@@ -23,8 +22,7 @@
       "Focusing only on speed"
     ],
     "correct": "C",
-    "category": "We Own Our Commitments",
-    "timeLimit": 20
+    "category": "We Own Our Commitments"
   },
   {
     "id": "v2q1",
@@ -37,8 +35,7 @@
       "Shift blame to vendors"
     ],
     "correct": "B",
-    "category": "Trusted Across Generations",
-    "timeLimit": 20
+    "category": "Trusted Across Generations"
   },
   {
     "id": "v2q2",
@@ -50,8 +47,7 @@
       "High project visibility"
     ],
     "correct": "A",
-    "category": "Trusted Across Generations",
-    "timeLimit": 20
+    "category": "Trusted Across Generations"
   },
   {
     "id": "v3q1",
@@ -64,8 +60,7 @@
       "Performance pressure"
     ],
     "correct": "B",
-    "category": "Tomorrow Ready",
-    "timeLimit": 20
+    "category": "Tomorrow Ready"
   },
   {
     "id": "v3q2",
@@ -77,8 +72,7 @@
       "More teamwork"
     ],
     "correct": "C",
-    "category": "Tomorrow Ready",
-    "timeLimit": 20
+    "category": "Tomorrow Ready"
   },
   {
     "id": "v4q1",
@@ -91,8 +85,7 @@
       "Reduced authority"
     ],
     "correct": "C",
-    "category": "Never Above Learning",
-    "timeLimit": 20
+    "category": "Never Above Learning"
   },
   {
     "id": "v4q2",
@@ -104,8 +97,7 @@
       "Relying only on experience"
     ],
     "correct": "A",
-    "category": "Never Above Learning",
-    "timeLimit": 20
+    "category": "Never Above Learning"
   },
   {
     "id": "v5q1",
@@ -118,8 +110,7 @@
       "Slow execution"
     ],
     "correct": "A",
-    "category": "We Stand Together",
-    "timeLimit": 20
+    "category": "We Stand Together"
   },
   {
     "id": "v5q2",
@@ -131,7 +122,6 @@
       "Escalate the pressure"
     ],
     "correct": "C",
-    "category": "We Stand Together",
-    "timeLimit": 20
+    "category": "We Stand Together"
   }
 ]
