@@ -2,7 +2,25 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Trophy, Phone, Square, MapPin, ArrowRight } from "lucide-react";
+import { Trophy, Phone, Square, MapPin, ArrowRight, Download } from "lucide-react";
+
+function downloadWinnersCsv(session: SessionWinners) {
+  const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const rows = [["Region", "Rank", "Name", "Phone", "Score"].map(esc).join(",")];
+  for (const r of session.regionWinners || []) {
+    for (const w of r.winners) {
+      rows.push([r.label, w.rank, w.name, w.phone || "", w.score].map(esc).join(","));
+    }
+  }
+  // BOM so Excel reads UTF-8 correctly
+  const blob = new Blob(["﻿" + rows.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `aljeel-winners-${session.sessionId.slice(0, 8)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 interface RegionWinnerGroup {
   key: string;
@@ -66,17 +84,29 @@ export default function WinnersScreen() {
                       {session.phase === "END" ? "Ended" : "Live"} — {session.playerCount} players
                     </span>
                   </div>
-                  {isLive && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => { if (confirm("End this game now and show winners?")) endGameMutation.mutate(session.sessionId); }}
-                      disabled={endGameMutation.isPending}
-                      data-testid={`button-end-game-${session.sessionId.slice(0, 8)}`}
-                    >
-                      <Square className="w-4 h-4 mr-1" /> End Game
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {hasWinners && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => downloadWinnersCsv(session)}
+                        data-testid={`button-download-csv-${session.sessionId.slice(0, 8)}`}
+                      >
+                        <Download className="w-4 h-4 mr-1" /> CSV
+                      </Button>
+                    )}
+                    {isLive && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => { if (confirm("End this game now and show winners?")) endGameMutation.mutate(session.sessionId); }}
+                        disabled={endGameMutation.isPending}
+                        data-testid={`button-end-game-${session.sessionId.slice(0, 8)}`}
+                      >
+                        <Square className="w-4 h-4 mr-1" /> End Game
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {!hasWinners ? (
