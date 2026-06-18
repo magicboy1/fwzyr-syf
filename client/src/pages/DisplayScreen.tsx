@@ -4,9 +4,8 @@ import { getSocket } from "@/lib/socket";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import confetti from "canvas-confetti";
-import { Maximize, Minimize, Volume2, VolumeX } from "lucide-react";
+import { Maximize, Minimize } from "lucide-react";
 import { BRAND } from "@/brand";
-import { sound, unlockAudio, setSoundEnabled } from "@/lib/sound";
 import type { QuestionForBigScreen, QuestionReveal, LeaderboardEntry, FinalStats } from "@shared/schema";
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
@@ -51,14 +50,12 @@ export default function DisplayScreen() {
   const [countdownNum, setCountdownNum] = useState(3);
   const [contextData, setContextData] = useState<{ context: string; index: number; totalQuestions: number } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [muted, setMuted] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const prevAnsweredRef = useRef(0);
   const isPortrait = useIsPortrait();
 
   const toggleFullscreen = useCallback(() => {
-    unlockAudio();
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
     } else {
@@ -70,17 +67,6 @@ export default function DisplayScreen() {
     const handler = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
-  }, []);
-
-  // Browsers block audio until a user gesture — unlock on the first interaction.
-  useEffect(() => {
-    const unlock = () => unlockAudio();
-    window.addEventListener("pointerdown", unlock, { once: true });
-    window.addEventListener("keydown", unlock, { once: true });
-    return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
-    };
   }, []);
 
   useEffect(() => {
@@ -122,7 +108,6 @@ export default function DisplayScreen() {
 
     socket.on("game:playerJoined", (data) => {
       setPlayerCount(data.playerCount);
-      sound.join();
       if (data.player) {
         setPlayers((prev) =>
           prev.some((p) => p.id === data.player.id) ? prev : [...prev, data.player]
@@ -172,19 +157,16 @@ export default function DisplayScreen() {
       } else {
         setShowCountdown(true);
         setCountdownNum(3);
-        sound.countdownTick();
         let count = 3;
         countdownRef.current = setInterval(() => {
           count--;
           if (count <= 0) {
             if (countdownRef.current) clearInterval(countdownRef.current);
-            sound.go();
             setShowCountdown(false);
             setPhase("QUESTION");
             startTimer(data.question.timeLimit);
           } else {
             setCountdownNum(count);
-            sound.countdownTick();
           }
         }, 700);
       }
@@ -210,7 +192,6 @@ export default function DisplayScreen() {
       setPhase("REVEAL");
       setReveal(data.reveal);
       setContextData(null);
-      sound.reveal();
 
       const frame = () => {
         confetti({ particleCount: 3, angle: 60 + Math.random() * 60, spread: 55, origin: { x: Math.random(), y: 0.6 }, colors: [BRAND.colors.gold, "#22c55e", BRAND.colors.goldLight], disableForReducedMotion: true });
@@ -306,14 +287,6 @@ export default function DisplayScreen() {
         title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
       >
         {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-      </button>
-      <button
-        onClick={() => { unlockAudio(); setMuted((m) => { const next = !m; setSoundEnabled(!next); return next; }); }}
-        className="fixed top-4 left-16 z-[60] p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors"
-        data-testid="button-mute"
-        title={muted ? "Unmute" : "Mute"}
-      >
-        {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
       </button>
 
       <AnimatePresence mode="wait">
