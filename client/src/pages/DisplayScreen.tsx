@@ -427,7 +427,13 @@ function ContextScreen({ context, category, index, totalQuestions, isPortrait }:
         data-testid="value-icon"
       >
         {value.icon
-          ? <img src={value.icon} alt="" style={{ width: "68%", height: "68%", objectFit: "contain" }} />
+          ? <div aria-hidden style={{
+              width: "62%", height: "62%", backgroundColor: textMain,
+              WebkitMaskImage: `url(${value.icon})`, maskImage: `url(${value.icon})`,
+              WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
+              WebkitMaskPosition: "center", maskPosition: "center",
+              WebkitMaskSize: "contain", maskSize: "contain",
+            }} />
           : <span className="ds-question font-bold" style={{ color: textMain }}>{value.name.charAt(0)}</span>}
       </motion.div>
 
