@@ -240,10 +240,23 @@ export default function PlayerScreen() {
     };
     socket.io.on("reconnect", onReconnect);
 
+    // Phones sleep constantly during a long game. When the screen wakes,
+    // socket.io does not always emit a transport "reconnect", so the player can
+    // be stuck on a stale phase. On every return-to-foreground, force a resync:
+    // reconnect the socket if it dropped, otherwise re-pull the current phase.
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!localStorage.getItem("fawazeer_playerId")) return;
+      if (socket.connected) onReconnect();
+      else socket.connect();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
       socket.io.off("reconnect", onReconnect);
+      document.removeEventListener("visibilitychange", onVisible);
       socket.off("game:questionStart");
       socket.off("game:questionEnd");
       socket.off("game:reveal");

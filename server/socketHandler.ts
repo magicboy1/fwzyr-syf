@@ -31,6 +31,10 @@ const timers = new Map<string, NodeJS.Timeout>();
 const contextTimers = new Map<string, NodeJS.Timeout>();
 const revealTimers = new Map<string, NodeJS.Timeout>();
 const answerUpdateTimers = new Map<string, NodeJS.Timeout>();
+// The 3s "double points" intro delay before a question. Tracked so End Game /
+// Restart can cancel it — otherwise it fires emitNextQuestion onto an already
+// ended/restarted session and resurrects a question over the END/LOBBY screen.
+const nextTimers = new Map<string, NodeJS.Timeout>();
 const CONTEXT_DURATION = 6000;
 // Coalesce answerUpdate broadcasts: at high player counts, emitting on every
 // single answer floods the event loop. We flush at most once per this window.
@@ -45,6 +49,8 @@ function clearSessionTimers(sessionId: string) {
   if (rt) { clearTimeout(rt); revealTimers.delete(sessionId); }
   const at = answerUpdateTimers.get(sessionId);
   if (at) { clearTimeout(at); answerUpdateTimers.delete(sessionId); }
+  const nt = nextTimers.get(sessionId);
+  if (nt) { clearTimeout(nt); nextTimers.delete(sessionId); }
 }
 
 let ioRef: SocketServer | null = null;
@@ -426,9 +432,11 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         const isDoublePoints = session.currentQuestionIndex + 1 === session.doublePointsIndex;
         if (isDoublePoints) {
           io.to(`session:${data.sessionId}`).emit("game:doublePoints");
-          setTimeout(() => {
+          const dpTimer = setTimeout(() => {
+            nextTimers.delete(data.sessionId);
             try { emitNextQuestion(data.sessionId); } catch (e) { console.error("Error in double points next:", e); }
           }, 3000);
+          nextTimers.set(data.sessionId, dpTimer);
         } else {
           emitNextQuestion(data.sessionId);
         }
