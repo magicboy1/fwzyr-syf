@@ -283,7 +283,7 @@ export default function DisplayScreen() {
   const timerPercent = timerDuration > 0 ? (timeLeft / timerDuration) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden" dir="ltr" data-testid="display-screen">
+    <div className="min-h-screen text-foreground overflow-hidden" dir="ltr" data-testid="display-screen">
       <button
         onClick={toggleFullscreen}
         className="fixed top-4 left-4 z-[60] p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors"

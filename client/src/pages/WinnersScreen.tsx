@@ -49,7 +49,7 @@ export default function WinnersScreen() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6" dir="ltr" data-testid="winners-screen">
+    <div className="min-h-screen text-foreground p-6" dir="ltr" data-testid="winners-screen">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <Link href="/">

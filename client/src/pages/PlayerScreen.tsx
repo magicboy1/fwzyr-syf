@@ -273,7 +273,7 @@ export default function PlayerScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col" dir="ltr" data-testid="player-screen">
+    <div className="min-h-screen text-foreground flex flex-col" dir="ltr" data-testid="player-screen">
       <AnimatePresence>
         {showCountdown && (
           <motion.div

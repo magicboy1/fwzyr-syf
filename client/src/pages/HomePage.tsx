@@ -5,7 +5,7 @@ import { QrCode, Settings, BookOpen, Trophy } from "lucide-react";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6" dir="ltr" data-testid="home-screen">
+    <div className="min-h-screen text-foreground flex flex-col items-center justify-center p-6" dir="ltr" data-testid="home-screen">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
         <img src={BRAND.logo} alt={BRAND.eventName} className="h-24 mx-auto mb-4 object-contain" data-testid="img-home-logo" />
         <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
