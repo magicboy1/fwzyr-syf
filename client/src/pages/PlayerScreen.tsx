@@ -336,7 +336,7 @@ export default function PlayerScreen() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-muted-foreground mb-8"
+              className="text-white/85 mb-8"
             >
               Enter your details to join
             </motion.p>
@@ -345,14 +345,14 @@ export default function PlayerScreen() {
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3, type: "spring" }}
-              className="w-full max-w-sm space-y-4"
+              className="w-full max-w-sm space-y-4 bg-card/85 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl"
             >
               <Input
                 type="text"
                 placeholder="First and last name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="text-center text-lg h-14 bg-card border-border/50"
+                className="text-center text-lg h-14 bg-background/60 border-border/70"
                 maxLength={60}
                 dir="auto"
                 data-testid="input-name"
@@ -363,7 +363,7 @@ export default function PlayerScreen() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="text-center text-lg h-14 bg-card border-border/50"
+                className="text-center text-lg h-14 bg-background/60 border-border/70"
                 maxLength={120}
                 dir="ltr"
                 autoCapitalize="off"
@@ -383,7 +383,7 @@ export default function PlayerScreen() {
                       className={`h-14 rounded-xl border text-base font-semibold transition-colors ${
                         region === r.key
                           ? "bg-gold text-white border-gold"
-                          : "bg-card text-foreground border-border/50 hover:border-gold/60"
+                          : "bg-background/60 text-foreground border-border/70 hover:border-gold/60"
                       }`}
                     >
                       {r.label}
