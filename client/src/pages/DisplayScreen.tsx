@@ -392,7 +392,7 @@ function ContextScreen({ context, category, index, totalQuestions, isPortrait }:
   if (!value) {
     return (
       <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-16" data-testid="context-screen">
-        <motion.div className="bg-card/60 border border-gold/20 rounded-2xl" style={{ maxWidth: "80%", padding: "clamp(32px, 3vw, 72px)" }}>
+        <motion.div className="bg-card/80 border border-gold/20 rounded-2xl" style={{ maxWidth: "80%", padding: "clamp(32px, 3vw, 72px)" }}>
           <p className="ds-question text-foreground text-center leading-relaxed font-bold" dir="auto" data-testid="text-context">{context}</p>
         </motion.div>
       </motion.div>
@@ -728,7 +728,7 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
       initial={isPortrait ? { opacity: 0, scale: 0.95 } : { x: -40, opacity: 0 }}
       animate={isPortrait ? { opacity: 1, scale: 1 } : { x: 0, opacity: 1 }}
       transition={{ delay: 0.5 }}
-      className="bg-card/50 rounded-2xl p-6 border border-border/30 w-full"
+      className="bg-card/75 rounded-2xl p-6 border border-border/30 w-full"
     >
       <h3 className={`font-semibold text-gold mb-4 ${isPortrait ? "ds-secondary text-center" : "ds-secondary"}`}>⚡ Fastest Answers</h3>
       {reveal.topFastest.map((p, i) => (
@@ -769,7 +769,7 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: isCorrect ? 1.02 : 1 }}
                   transition={{ delay: i * 0.1, duration: 0.3 }}
-                  className={`rounded-xl flex items-center gap-3 px-5 py-4 border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-40"}`}
+                  className={`rounded-xl flex items-center gap-3 px-5 py-4 border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/75 border-border/20 opacity-80"}`}
                   data-testid={`reveal-option-${label}`}
                 >
                   {isCorrect && (
@@ -810,7 +810,7 @@ function RevealScreen({ reveal, question, isPortrait }: { reveal: QuestionReveal
                 initial={{ scale: 0.85, opacity: 0, y: 16 }}
                 animate={{ scale: isCorrect ? 1.03 : 1, opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.12, type: "spring", bounce: 0.35 }}
-                className={`rounded-2xl flex items-center gap-4 border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/30 border-border/20 opacity-50"}`}
+                className={`rounded-2xl flex items-center gap-4 border-2 ${isCorrect ? "bg-green-500/15 border-green-400 shadow-lg shadow-green-400/10" : "bg-card/75 border-border/20 opacity-80"}`}
                 style={{ padding: "clamp(18px, 1.5vw, 32px)" }}
                 data-testid={`reveal-option-${label}`}
               >
@@ -850,7 +850,7 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.12 }}
-                className={`flex items-center gap-4 p-4 rounded-xl ${i < 3 ? "bg-gold/10 border border-gold/20" : "bg-card/50 border border-border/20"}`}
+                className={`flex items-center gap-4 p-4 rounded-xl ${i < 3 ? "bg-card/80 border border-gold/45" : "bg-card/75 border border-border/20"}`}
                 data-testid={`leaderboard-entry-${i}`}
               >
                 <motion.span
@@ -904,7 +904,7 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
             initial={{ x: i % 2 === 0 ? -80 : 80, opacity: 0, scale: 0.9 }}
             animate={{ x: 0, opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.12, type: "spring", bounce: 0.3 }}
-            className={`flex items-center gap-6 mb-4 rounded-xl ${i < 3 ? "bg-gold/10 border border-gold/20" : "bg-card/50 border border-border/20"}`}
+            className={`flex items-center gap-6 mb-4 rounded-xl ${i < 3 ? "bg-card/80 border border-gold/45" : "bg-card/75 border border-border/20"}`}
             style={{ padding: "clamp(12px, 1vw, 24px)" }}
             data-testid={`leaderboard-entry-${i}`}
           >
@@ -1003,7 +1003,7 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.3, type: "spring", bounce: 0.4 }}
-          className="flex items-center gap-3 mb-4 bg-card/60 border border-gold/30 rounded-2xl px-5 py-2"
+          className="flex items-center gap-3 mb-4 bg-card/80 border border-gold/30 rounded-2xl px-5 py-2"
         >
           <motion.span animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }} className="rounded-full bg-gradient-to-br from-gold via-gold-light to-gold-dark text-white font-bold flex items-center justify-center shrink-0" style={{ width: "clamp(32px, 2.6vw, 52px)", height: "clamp(32px, 2.6vw, 52px)" }}>1</motion.span>
           <span className="font-bold ds-secondary" dir="auto">{stats.winner.name}</span>
@@ -1030,7 +1030,7 @@ function RegionWinners({ stats, isPortrait, fill = false }: { stats: FinalStats;
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 + ri * 0.15, type: "spring", bounce: 0.3 }}
-          className="bg-card/60 rounded-2xl border border-gold/25 flex flex-col overflow-hidden min-h-0"
+          className="bg-card/80 rounded-2xl border border-gold/25 flex flex-col overflow-hidden min-h-0"
         >
           <div className="flex items-baseline justify-center gap-2 px-3 py-2 bg-gold/10 border-b border-gold/25 shrink-0">
             <h3 className="ds-small font-bold text-gold leading-tight">{r.label}</h3>
@@ -1063,7 +1063,7 @@ function StatCard({ title, value, subtitle, delay = 0, isPortrait = false }: { t
       initial={isPortrait ? { opacity: 0, scale: 0.95 } : { y: 30, opacity: 0, scale: 0.9 }}
       animate={isPortrait ? { opacity: 1, scale: 1 } : { y: 0, opacity: 1, scale: 1 }}
       transition={{ delay, type: "spring", bounce: 0.3 }}
-      className="bg-card/60 rounded-xl p-4 border border-border/30 text-center"
+      className="bg-card/80 rounded-xl p-4 border border-border/30 text-center"
     >
       <p className="text-muted-foreground mb-1 ds-small">{title}</p>
       <motion.p
