@@ -12,6 +12,36 @@ import { valueByCategory } from "@/lib/values";
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
+export interface EndResult {
+  won: boolean;
+  regionRank: number;
+  regionLabel: string;
+  regionWinners: number;
+  overallRank: number;
+  score: number;
+}
+
+// Work out a player's personal result from the final stats: their rank inside
+// their own region, and whether that puts them in the region's winners.
+function computeEndResult(stats: any, pid: string): EndResult | null {
+  const lb = stats?.fullLeaderboard;
+  if (!Array.isArray(lb) || !pid) return null;
+  const me = lb.find((e: any) => e.playerId === pid);
+  if (!me) return null;
+  const regionEntries = lb.filter((e: any) => e.region === me.region);
+  const regionRank = regionEntries.findIndex((e: any) => e.playerId === pid) + 1;
+  const reg = REGIONS.find((r) => r.key === me.region);
+  const regionWinners = reg?.winners ?? 0;
+  return {
+    won: regionRank > 0 && regionRank <= regionWinners,
+    regionRank,
+    regionLabel: reg?.label ?? "",
+    regionWinners,
+    overallRank: me.rank,
+    score: me.score,
+  };
+}
+
 export default function PlayerScreen() {
   const [, navigate] = useLocation();
   const [phase, setPhase] = useState<"NAME" | "WAITING" | "QUESTION" | "ANSWERED" | "FEEDBACK" | "KICKED" | "END" | "INVALID">("NAME");
@@ -27,6 +57,7 @@ export default function PlayerScreen() {
   const [feedback, setFeedback] = useState<PlayerFeedback | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [score, setScore] = useState(0);
+  const [endResult, setEndResult] = useState<EndResult | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownNum, setCountdownNum] = useState(3);
@@ -62,6 +93,7 @@ export default function PlayerScreen() {
             // instead of the answer buttons (a duplicate would be rejected anyway)
             setPhase(res.alreadyAnswered ? "ANSWERED" : "QUESTION");
           } else if (res.phase === "END") {
+            setEndResult(computeEndResult(res.stats, savedPlayer));
             setPhase("END");
           } else {
             setPhase("WAITING");
@@ -140,7 +172,9 @@ export default function PlayerScreen() {
       setPhase("WAITING");
     });
 
-    socket.on("game:end", () => {
+    socket.on("game:end", (data: any) => {
+      const pid = localStorage.getItem("fawazeer_playerId") || "";
+      setEndResult(computeEndResult(data?.stats, pid));
       setPhase("END");
     });
 
@@ -196,6 +230,7 @@ export default function PlayerScreen() {
           setGameStarted(true);
           setPhase(res.alreadyAnswered ? "ANSWERED" : "QUESTION");
         } else if (res.phase === "END") {
+          setEndResult(computeEndResult(res.stats, pid));
           setPhase("END");
         } else {
           setPhase("WAITING");
@@ -274,6 +309,13 @@ export default function PlayerScreen() {
   };
 
   // While answering a value's question, tint the phone with that value's colour
+  // Celebrate winners with confetti when the result screen appears.
+  useEffect(() => {
+    if (phase === "END" && endResult?.won) {
+      confetti({ particleCount: 140, spread: 80, origin: { y: 0.5 } });
+    }
+  }, [phase, endResult]);
+
   // The phone keeps a calm, fixed dark canvas everywhere so contrast is constant
   // (white text on dark). Only the registration screen shows the brand gradient.
   // Each value is expressed as an accent — the value-name pill, the timer and the
@@ -665,33 +707,97 @@ export default function PlayerScreen() {
         )}
 
         {phase === "END" && (
-          <motion.div key="end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center p-6">
-            <motion.h3
-              initial={{ y: -30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ type: "spring", bounce: 0.4 }}
-              className="text-2xl font-bold text-gold mb-4"
-            >
-              Game Over!
-            </motion.h3>
-            <motion.p
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3, type: "spring", bounce: 0.5 }}
-              className="text-4xl font-bold text-gold mb-2"
-              dir="ltr"
-              data-testid="text-final-score"
-            >
-              {score.toLocaleString()}
-            </motion.p>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="text-muted-foreground"
-            >
-              Total score
-            </motion.p>
+          <motion.div key="end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            {endResult ? (
+              <>
+                <motion.div
+                  initial={{ scale: 0, rotate: -15 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", bounce: 0.5 }}
+                  className={`w-28 h-28 rounded-full flex items-center justify-center mb-5 ${endResult.won ? "bg-gold/20 border-2 border-gold/40" : "bg-card border border-border/40"}`}
+                  data-testid="end-result-badge"
+                >
+                  <span className="text-6xl">{endResult.won ? "🏆" : "🎯"}</span>
+                </motion.div>
+                <motion.h3
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.15, type: "spring", bounce: 0.4 }}
+                  className={`text-3xl font-extrabold mb-2 ${endResult.won ? "text-gold" : "text-foreground"}`}
+                  data-testid="end-result-title"
+                >
+                  {endResult.won ? "You Won! 🎉" : "Game Over"}
+                </motion.h3>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-muted-foreground mb-6"
+                >
+                  {endResult.won
+                    ? `You're a winner in ${endResult.regionLabel}!`
+                    : "Thanks for playing!"}
+                </motion.p>
+
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="w-full max-w-xs bg-card/80 border border-border/40 rounded-2xl p-5 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground text-sm">Rank in {endResult.regionLabel}</span>
+                    <span className="font-bold" dir="ltr">
+                      #{endResult.regionRank}{endResult.won ? ` of ${endResult.regionWinners}` : ""}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground text-sm">Score</span>
+                    <span className="font-bold text-gold" dir="ltr" data-testid="text-final-score">{endResult.score.toLocaleString()}</span>
+                  </div>
+                </motion.div>
+
+                {!endResult.won && endResult.regionWinners > 0 && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="text-xs text-muted-foreground mt-4"
+                  >
+                    Top {endResult.regionWinners} in {endResult.regionLabel} win the prizes.
+                  </motion.p>
+                )}
+              </>
+            ) : (
+              <>
+                <motion.h3
+                  initial={{ y: -30, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ type: "spring", bounce: 0.4 }}
+                  className="text-2xl font-bold text-gold mb-4"
+                >
+                  Game Over!
+                </motion.h3>
+                <motion.p
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", bounce: 0.5 }}
+                  className="text-4xl font-bold text-gold mb-2"
+                  dir="ltr"
+                  data-testid="text-final-score"
+                >
+                  {score.toLocaleString()}
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-muted-foreground"
+                >
+                  Total score
+                </motion.p>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -385,6 +385,10 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           response.alreadyAnswered = session.answersIndex.has(`${data.playerId}:${session.currentQuestionIndex}`);
         }
 
+        if (session && session.phase === "END" && session.lastStats) {
+          response.stats = session.lastStats;
+        }
+
         callback?.(response);
       } catch (e: any) {
         callback?.({ success: false, error: e.message });
