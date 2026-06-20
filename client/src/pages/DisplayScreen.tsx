@@ -429,7 +429,7 @@ function ContextScreen({ context, category, index, totalQuestions, isPortrait }:
         {value.icon
           ? <div aria-hidden style={{
               width: "62%", height: "62%", backgroundColor: textMain,
-              WebkitMaskImage: `url(${value.icon})`, maskImage: `url(${value.icon})`,
+              WebkitMaskImage: `url("${value.icon}")`, maskImage: `url("${value.icon}")`,
               WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
               WebkitMaskPosition: "center", maskPosition: "center",
               WebkitMaskSize: "contain", maskSize: "contain",
