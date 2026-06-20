@@ -423,23 +423,25 @@ function ContextScreen({ context, category, index, totalQuestions, isPortrait }:
         initial={{ scale: 0, rotate: -12 }} animate={{ scale: 1, rotate: 0 }}
         transition={{ delay: 0.2, type: "spring", bounce: 0.45 }}
         className="mb-6 flex items-center justify-center rounded-3xl"
-        style={{ width: "clamp(96px, 9vw, 190px)", height: "clamp(96px, 9vw, 190px)", background: chipBg, border: `2px solid ${chipBorder}` }}
+        style={{ width: "clamp(96px, 9vw, 190px)", height: "clamp(96px, 9vw, 190px)", background: "rgba(0,0,0,0.22)", border: "2px solid rgba(0,0,0,0.18)" }}
         data-testid="value-icon"
       >
         {value.icon
           ? <div aria-hidden style={{
-              width: "62%", height: "62%", backgroundColor: textMain,
+              width: "62%", height: "62%", backgroundColor: "#ffffff",
               WebkitMaskImage: `url("${value.icon}")`, maskImage: `url("${value.icon}")`,
               WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
               WebkitMaskPosition: "center", maskPosition: "center",
               WebkitMaskSize: "contain", maskSize: "contain",
             }} />
-          : <span className="ds-question font-bold" style={{ color: textMain }}>{value.name.charAt(0)}</span>}
+          : <span className="ds-question font-bold" style={{ color: "#ffffff" }}>{value.name.charAt(0)}</span>}
       </motion.div>
 
       <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
         className="ds-question font-bold leading-tight mb-7" style={{ maxWidth: "88%" }} dir="auto" data-testid="text-value-name">
-        {value.name}
+        {value.name.includes(",")
+          ? <>{value.name.slice(0, value.name.indexOf(",") + 1)}<br />{value.name.slice(value.name.indexOf(",") + 1).trim()}</>
+          : value.name}
       </motion.h1>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
@@ -840,7 +842,7 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
     return (
       <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center" style={{ padding: "5%" }} data-testid="leaderboard-screen">
         <div style={{ maxWidth: "80%" }} className="w-full flex flex-col items-center">
-          <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-question font-bold text-gold mb-8">
+          <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-question font-bold text-white mb-8">
             Leaderboard
           </motion.h2>
           <div className="w-full space-y-3">
@@ -894,7 +896,7 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-12" data-testid="leaderboard-screen">
-      <motion.h2 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="ds-question font-bold text-gold mb-12">
+      <motion.h2 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", bounce: 0.4 }} className="ds-question font-bold text-white mb-12">
         Leaderboard
       </motion.h2>
       <div className="w-full" style={{ maxWidth: "70%" }}>
@@ -953,7 +955,7 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
       <motion.div {...pFade} className="min-h-screen flex flex-col items-center overflow-y-auto" style={{ padding: "5%" }} data-testid="end-screen">
         <div style={{ maxWidth: "80%" }} className="w-full flex flex-col items-center">
           <motion.img initial={{ opacity: 0 }} animate={{ opacity: 0.8 }} src={BRAND.logo} alt="Logo" className="h-10 mb-4" />
-          <motion.h2 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="ds-question font-bold text-gold mb-6">
+          <motion.h2 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="ds-question font-bold text-white mb-6">
             Game Over!
           </motion.h2>
 
@@ -995,7 +997,7 @@ function EndScreen({ stats, isPortrait }: { stats: FinalStats; isPortrait: boole
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-screen flex flex-col items-center p-6 lg:p-8 overflow-hidden" data-testid="end-screen">
       <motion.img initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 0.8 }} transition={{ type: "spring", bounce: 0.4 }} src={BRAND.logo} alt="Logo" style={{ height: "clamp(36px, 3vw, 64px)" }} className="mb-2" />
-      <motion.h2 initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="ds-secondary font-bold text-gold mb-3">
+      <motion.h2 initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="ds-secondary font-bold text-white mb-3">
         Game Over!
       </motion.h2>
       {stats.winner && (
