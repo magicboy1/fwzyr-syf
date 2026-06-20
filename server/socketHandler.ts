@@ -609,17 +609,23 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
         clearSessionTimers(data.sessionId);
 
         if (restartGame(data.sessionId)) {
+          // Tell everyone (display, host, players) the game restarted — once.
           io.to(`session:${data.sessionId}`).emit("game:restarted");
 
+          // Evict ONLY player sockets from the session room so they must
+          // re-register for the new game. The display and host must stay in the
+          // room, otherwise they stop receiving session broadcasts (game:end,
+          // questions) after a restart and only update on a manual refresh.
           const room = io.sockets.adapter.rooms.get(`session:${data.sessionId}`);
           if (room) {
             for (const socketId of Array.from(room)) {
               const s = io.sockets.sockets.get(socketId);
-              if (s) s.leave(`session:${data.sessionId}`);
+              if (!s) continue;
+              if (s.rooms.has(`display:${data.sessionId}`) || s.rooms.has(`host:${data.sessionId}`)) continue;
+              s.leave(`session:${data.sessionId}`);
             }
           }
 
-          io.to(`display:${data.sessionId}`).emit("game:restarted");
           io.to(`host:${data.sessionId}`).emit("game:hostRestarted", {
             playerCount: 0,
             players: [],
