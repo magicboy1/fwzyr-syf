@@ -203,10 +203,12 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    /* Subtle brand depth: faint Denim-blue and coral glows over the deep navy. */
+    /* aljeel brand gradient: a Denim-blue (top-left) → coral (bottom-right)
+       diagonal, kept deep so the dark cards, white QR and text stay legible. */
     background-image:
-      radial-gradient(60% 50% at 18% 0%, hsl(var(--brand-gold) / 0.10), transparent 70%),
-      radial-gradient(55% 45% at 100% 100%, hsl(var(--brand-gold-accent) / 0.08), transparent 70%);
+      radial-gradient(65% 55% at 12% -5%, hsl(var(--brand-gold) / 0.28), transparent 62%),
+      radial-gradient(65% 55% at 100% 105%, hsl(var(--brand-gold-accent) / 0.24), transparent 62%),
+      linear-gradient(158deg, #0a2438 0%, #111527 52%, #2a1722 100%);
     background-attachment: fixed;
   }
 }
