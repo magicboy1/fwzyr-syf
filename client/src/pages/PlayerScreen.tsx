@@ -16,7 +16,7 @@ export default function PlayerScreen() {
   const [phase, setPhase] = useState<"NAME" | "WAITING" | "QUESTION" | "ANSWERED" | "FEEDBACK" | "KICKED" | "END" | "INVALID">("NAME");
   const [sessionId, setSessionId] = useState("");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [region, setRegion] = useState("");
   const [error, setError] = useState("");
   const [playerId, setPlayerId] = useState("");
@@ -232,8 +232,8 @@ export default function PlayerScreen() {
       setError("Please enter your first and last name");
       return;
     }
-    if (!phone.trim()) {
-      setError("Please enter your mobile number");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Please enter a valid email");
       return;
     }
     if (!region) {
@@ -242,7 +242,7 @@ export default function PlayerScreen() {
     }
     setError("");
     const socket = getSocket();
-    socket.emit("player:join", { sessionId, name: trimmed, phone: phone.trim(), region }, (res: any) => {
+    socket.emit("player:join", { sessionId, name: trimmed, email: email.trim(), region }, (res: any) => {
       if (res.success) {
         setPlayerId(res.playerId);
         setPlayerName(res.playerName);
@@ -345,14 +345,16 @@ export default function PlayerScreen() {
                 autoFocus
               />
               <Input
-                type="tel"
-                placeholder="Mobile number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="text-center text-lg h-14 bg-card border-border/50"
-                maxLength={15}
+                maxLength={120}
                 dir="ltr"
-                data-testid="input-phone"
+                autoCapitalize="off"
+                autoCorrect="off"
+                data-testid="input-email"
                 onKeyDown={(e) => e.key === "Enter" && handleJoin()}
               />
               <div className="space-y-2">

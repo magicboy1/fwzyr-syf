@@ -79,7 +79,7 @@ async function main() {
             setTimeout(() => rej(new Error("timeout")), ACK_TIMEOUT);
           });
           const r = await ack(sock, "player:join", {
-            sessionId, name: `Player_${k}`, phone: "",
+            sessionId, name: `Player_${k}`, email: "",
           });
           if (!r?.success) { joinFail++; sock.close(); return; }
           const p = { sock, id: r.playerId, gotQuestion: false };

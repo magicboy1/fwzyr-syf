@@ -300,7 +300,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
       }
     });
 
-    socket.on("player:join", (data: { sessionId: string; name: string; phone: string; region?: string }, callback) => {
+    socket.on("player:join", (data: { sessionId: string; name: string; email?: string; region?: string }, callback) => {
       try {
         const session = getSession(data.sessionId);
         if (!session) {
@@ -312,7 +312,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           return;
         }
 
-        const player = addPlayer(session.id, data.name, data.phone || "", data.region || "");
+        const player = addPlayer(session.id, data.name, data.email || "", data.region || "");
         if (!player) {
           callback?.({ success: false, error: "Could not join. Try a different name." });
           return;

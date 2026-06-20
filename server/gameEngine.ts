@@ -175,14 +175,14 @@ export function getSession(sessionId: string): GameSession | undefined {
 }
 
 
-export function addPlayer(sessionId: string, name: string, phone: string, region: string = ""): Player | null {
+export function addPlayer(sessionId: string, name: string, email: string, region: string = ""): Player | null {
   const session = sessions.get(sessionId);
   if (!session || session.phase !== "LOBBY") return null;
 
   const sanitized = name.replace(/[<>&"']/g, "").trim().slice(0, 60);
   if (!sanitized) return null;
 
-  const sanitizedPhone = phone.replace(/[^0-9+]/g, "").trim();
+  const sanitizedEmail = email.trim().toLowerCase().slice(0, 120);
   const validRegion = (REGION_KEYS as string[]).includes(region) ? (region as RegionKey) : "";
 
   // Names must be unique. Previously a same-name join silently took over the
@@ -198,7 +198,7 @@ export function addPlayer(sessionId: string, name: string, phone: string, region
   const player: Player = {
     id: randomUUID(),
     name: sanitized,
-    phone: sanitizedPhone,
+    email: sanitizedEmail,
     region: validRegion,
     sessionId,
     score: 0,
@@ -726,25 +726,25 @@ export function deleteSession(sessionId: string): boolean {
   return true;
 }
 
-export function getWinnersWithPhone(sessionId: string): { rank: number; name: string; phone: string; score: number }[] {
+export function getWinnersWithEmail(sessionId: string): { rank: number; name: string; email: string; score: number }[] {
   const session = sessions.get(sessionId);
   if (!session) return [];
   const sorted = Object.values(session.players).sort(rankComparator);
   return sorted.slice(0, 3).map((p, i) => ({
     rank: i + 1,
     name: p.name,
-    phone: p.phone,
+    email: p.email,
     score: p.score,
   }));
 }
 
-// Contactable winners grouped by region (top N per region, with phone numbers)
+// Contactable winners grouped by region (top N per region, with emails)
 // for the organizers to reach out after the event.
-export function getRegionWinnersWithPhone(sessionId: string): {
+export function getRegionWinnersWithEmail(sessionId: string): {
   key: RegionKey;
   label: string;
   winnerCount: number;
-  winners: { rank: number; name: string; phone: string; score: number }[];
+  winners: { rank: number; name: string; email: string; score: number }[];
 }[] {
   const session = sessions.get(sessionId);
   if (!session) return [];
@@ -756,6 +756,6 @@ export function getRegionWinnersWithPhone(sessionId: string): {
     winners: sorted
       .filter((p) => p.region === r.key)
       .slice(0, r.winners)
-      .map((p, i) => ({ rank: i + 1, name: p.name, phone: p.phone, score: p.score })),
+      .map((p, i) => ({ rank: i + 1, name: p.name, email: p.email, score: p.score })),
   }));
 }

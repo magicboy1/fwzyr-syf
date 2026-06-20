@@ -7,7 +7,7 @@ import type { Question } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
-import { getAllSessions, getWinnersWithPhone, getRegionWinnersWithPhone } from "./gameEngine";
+import { getAllSessions, getWinnersWithEmail, getRegionWinnersWithEmail } from "./gameEngine";
 
 const QUESTIONS_FILE = path.join(process.cwd(), "data", "questions.json");
 
@@ -254,8 +254,8 @@ export async function registerRoutes(
         sessionId: s.id,
         phase: s.phase,
         playerCount: Object.keys(s.players).length,
-        winners: getWinnersWithPhone(s.id),
-        regionWinners: getRegionWinnersWithPhone(s.id),
+        winners: getWinnersWithEmail(s.id),
+        regionWinners: getRegionWinnersWithEmail(s.id),
       }));
     res.json(results);
   });

@@ -80,7 +80,7 @@ export default function () {
       if (msg.indexOf("40") === 0) {
         const payload = JSON.stringify([
           "player:join",
-          { sessionId: SESSION, name, phone: "0500000000", region },
+          { sessionId: SESSION, name, email: `k6-@example.com`, region },
         ]);
         joinSentAt = Date.now();
         socket.send("421" + payload); // 4=message, 2=EVENT, 1=ack id

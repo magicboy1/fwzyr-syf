@@ -1,4 +1,4 @@
-// Full game simulation: N fake players REGISTER (name/phone/region), stay
+// Full game simulation: N fake players REGISTER (name/email/region), stay
 // connected, and ANSWER every question with random timing + skill — so they
 // behave like real players and produce a real leaderboard. The script also
 // acts as the host and drives the game start→questions→end.
@@ -34,7 +34,7 @@ const LAST = ["Alharbi","Alqahtani","Alotaibi","Alshehri","Alghamdi","Aldosari",
 const seen = new Set();
 const ri = (n) => Math.floor(Math.random() * n);
 const uname = () => { for (let i = 0; i < 60; i++) { const n = `${FIRST[ri(FIRST.length)]} ${LAST[ri(LAST.length)]}`; if (!seen.has(n)) { seen.add(n); return n; } } const n = `Player ${seen.size + 1}`; seen.add(n); return n; };
-const phone = () => "05" + Array.from({ length: 8 }, () => ri(10)).join("");
+const email = () => `user${ri(1000000)}@example.com`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ack = (s, e, d, t = 15000) => new Promise((res, rej) => { const to = setTimeout(() => rej(new Error("ack " + e)), t); s.emit(e, d, (r) => { clearTimeout(to); res(r); }); });
 const conn = () => new Promise((res, rej) => { const s = io(URL, { transports: ["websocket"], reconnection: false }); s.on("connect", () => res(s)); s.on("connect_error", rej); setTimeout(() => rej(new Error("conn")), 15000); });
@@ -61,7 +61,7 @@ async function joinPlayers(sessionId) {
       try {
         const sock = await conn();
         const skill = 0.3 + Math.random() * 0.6; // 30–90% correct
-        const r = await ack(sock, "player:join", { sessionId, name: uname(), phone: phone(), region: REGIONS[i % 3] });
+        const r = await ack(sock, "player:join", { sessionId, name: uname(), email: email(), region: REGIONS[i % 3] });
         if (r?.success) { joined++; players.push(sock); wireAutoAnswer(sock, skill); }
         else { fail++; sock.close(); }
       } catch { fail++; }
@@ -78,7 +78,7 @@ function printWinners(d) {
   console.log("\n=== FINAL WINNERS BY REGION ===");
   for (const r of rr) {
     console.log(`\n${r.label} (top ${r.winnerCount}):`);
-    r.winners.slice(0, 5).forEach((w) => console.log(`  ${w.rank}. ${w.name} — ${w.score.toLocaleString()} [${w.phone}]`));
+    r.winners.slice(0, 5).forEach((w) => console.log(`  ${w.rank}. ${w.name} — ${w.score.toLocaleString()} [${w.email}]`));
     if (r.winners.length > 5) console.log(`  …and ${r.winners.length - 5} more`);
   }
 }

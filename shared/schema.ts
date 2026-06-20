@@ -28,7 +28,7 @@ export const REGION_KEYS = REGIONS.map((r) => r.key) as RegionKey[];
 export interface Player {
   id: string;
   name: string;
-  phone: string;
+  email: string;
   region: RegionKey | "";
   sessionId: string;
   score: number;

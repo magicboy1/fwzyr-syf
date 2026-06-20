@@ -2,14 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Trophy, Phone, Square, MapPin, ArrowRight, Download } from "lucide-react";
+import { Trophy, Mail, Square, MapPin, ArrowRight, Download } from "lucide-react";
 
 function downloadWinnersCsv(session: SessionWinners) {
   const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
-  const rows = [["Region", "Rank", "Name", "Phone", "Score"].map(esc).join(",")];
+  const rows = [["Region", "Rank", "Name", "Email", "Score"].map(esc).join(",")];
   for (const r of session.regionWinners || []) {
     for (const w of r.winners) {
-      rows.push([r.label, w.rank, w.name, w.phone || "", w.score].map(esc).join(","));
+      rows.push([r.label, w.rank, w.name, w.email || "", w.score].map(esc).join(","));
     }
   }
   // BOM so Excel reads UTF-8 correctly
@@ -26,7 +26,7 @@ interface RegionWinnerGroup {
   key: string;
   label: string;
   winnerCount: number;
-  winners: { rank: number; name: string; phone: string; score: number }[];
+  winners: { rank: number; name: string; email: string; score: number }[];
 }
 
 interface SessionWinners {
@@ -128,7 +128,7 @@ export default function WinnersScreen() {
                               <span className={`w-6 text-center font-bold text-sm ${w.rank <= 3 ? "text-gold-accent" : "text-muted-foreground"}`} dir="ltr">{w.rank}</span>
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm truncate" dir="auto">{w.name}</p>
-                                <p className="text-xs text-muted-foreground flex items-center gap-1" dir="ltr"><Phone className="w-3 h-3" /> {w.phone || "—"}</p>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 truncate" dir="ltr"><Mail className="w-3 h-3 shrink-0" /> {w.email || "—"}</p>
                               </div>
                               <span className="font-bold text-gold text-sm tabular-nums" dir="ltr">{w.score.toLocaleString()}</span>
                             </div>

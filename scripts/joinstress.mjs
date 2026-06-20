@@ -78,7 +78,7 @@ async function main() {
       }
       try {
         const r = await ack(sock, "player:join", {
-          sessionId, name: `Stress User ${i}`, phone: "0500000000", region: ["riyadh", "jeddah", "khobar"][i % 3],
+          sessionId, name: `Stress User ${i}`, email: `stress@example.com`, region: ["riyadh", "jeddah", "khobar"][i % 3],
         });
         if (r?.success) {
           joined++;

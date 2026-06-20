@@ -1,4 +1,4 @@
-// Fill a LIVE lobby with N fake players (random name + Saudi phone + region)
+// Fill a LIVE lobby with N fake players (random name + email + region)
 // so they show up in the host panel / winners page. Each player joins and the
 // socket is closed immediately — the player stays in the session server-side,
 // so this does NOT hit the per-IP concurrent-connection cap.
@@ -35,10 +35,8 @@ function uniqueName() {
   }
   const n = `Player ${seenNames.size + 1}`; seenNames.add(n); return n;
 }
-function saudiPhone() {
-  let s = "05";
-  for (let i = 0; i < 8; i++) s += randInt(10);
-  return s;
+function fakeEmail() {
+  return `user${randInt(1000000)}@example.com`;
 }
 
 function joinOne(i) {
@@ -49,7 +47,7 @@ function joinOne(i) {
     const t = setTimeout(() => finish(false), 15000);
     sock.on("connect", () => {
       sock.emit("player:join",
-        { sessionId: SESSION, name: uniqueName(), phone: saudiPhone(), region: REGIONS[randInt(3)] },
+        { sessionId: SESSION, name: uniqueName(), email: fakeEmail(), region: REGIONS[randInt(3)] },
         (r) => { clearTimeout(t); finish(!!(r && r.success)); }
       );
     });
@@ -61,7 +59,7 @@ async function main() {
   if (!SESSION) { console.error("ERROR: set SESSION=<sessionId> (from the /display?s=... URL)"); process.exit(1); }
   console.log(`\nAdding ${N} fake players to session ${SESSION.slice(0, 8)}… on ${URL}\n`);
   // show a few samples of the random data
-  for (let k = 0; k < 3; k++) console.log(`  sample → ${uniqueName()} | ${saudiPhone()} | ${REGIONS[randInt(3)]}`);
+  for (let k = 0; k < 3; k++) console.log(`  sample → ${uniqueName()} | ${fakeEmail()} | ${REGIONS[randInt(3)]}`);
   seenNames.clear();
   console.log("");
 
