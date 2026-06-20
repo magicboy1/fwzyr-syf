@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npm start",
+    "startCommand": "NODE_ENV=production node dist/index.cjs",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "numReplicas": 1,
