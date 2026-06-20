@@ -175,25 +175,33 @@ export function getSession(sessionId: string): GameSession | undefined {
 }
 
 
-export function addPlayer(sessionId: string, name: string, email: string, region: string = ""): Player | null {
+export type AddPlayerResult =
+  | { ok: true; player: Player }
+  | { ok: false; reason: "invalid" | "name" | "email" };
+
+export function addPlayer(sessionId: string, name: string, email: string, region: string = ""): AddPlayerResult {
   const session = sessions.get(sessionId);
-  if (!session || session.phase !== "LOBBY") return null;
+  if (!session || session.phase !== "LOBBY") return { ok: false, reason: "invalid" };
 
   const sanitized = name.replace(/[<>&"']/g, "").trim().slice(0, 60);
-  if (!sanitized) return null;
+  if (!sanitized) return { ok: false, reason: "invalid" };
 
   const sanitizedEmail = email.trim().toLowerCase().slice(0, 120);
   const validRegion = (REGION_KEYS as string[]).includes(region) ? (region as RegionKey) : "";
 
+  const existing = Object.values(session.players);
   // Names must be unique. Previously a same-name join silently took over the
   // existing player (and their score) — at a large event two genuine "Ahmed"s
   // would collide. Reject instead; the join handler tells them to pick another.
   // (Legitimate refresh/reconnect goes through player:reconnect by playerId,
   // not by name, so this does not break normal reconnection.)
-  const nameTaken = Object.values(session.players).some(
-    (p) => p.name.toLowerCase() === sanitized.toLowerCase()
-  );
-  if (nameTaken) return null;
+  if (existing.some((p) => p.name.toLowerCase() === sanitized.toLowerCase())) {
+    return { ok: false, reason: "name" };
+  }
+  // Emails must be unique too — one person can't register twice.
+  if (sanitizedEmail && existing.some((p) => p.email === sanitizedEmail)) {
+    return { ok: false, reason: "email" };
+  }
 
   const player: Player = {
     id: randomUUID(),
@@ -212,7 +220,7 @@ export function addPlayer(sessionId: string, name: string, email: string, region
   };
 
   session.players[player.id] = player;
-  return player;
+  return { ok: true, player };
 }
 
 export function reconnectPlayer(sessionId: string, playerId: string): Player | null {

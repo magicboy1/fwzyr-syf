@@ -312,11 +312,17 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
           return;
         }
 
-        const player = addPlayer(session.id, data.name, data.email || "", data.region || "");
-        if (!player) {
-          callback?.({ success: false, error: "Could not join. Try a different name." });
+        const result = addPlayer(session.id, data.name, data.email || "", data.region || "");
+        if (!result.ok) {
+          const error = result.reason === "email"
+            ? "This email is already registered."
+            : result.reason === "name"
+            ? "That name is taken. Try a different one."
+            : "Could not join.";
+          callback?.({ success: false, error });
           return;
         }
+        const player = result.player;
 
         currentSessionId = session.id;
         currentPlayerId = player.id;
