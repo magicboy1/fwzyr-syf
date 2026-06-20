@@ -597,16 +597,27 @@ function PortraitOptionBlock({ label, index }: { label: string; index: number })
 }
 
 function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCount, totalPlayers, contextText, isPortrait }: { question: QuestionForBigScreen; timeLeft: number; timerPercent: number; paused: boolean; answeredCount: number; totalPlayers: number; contextText?: string; isPortrait: boolean }) {
+  // Tint the slide with the value's colour. When no value matches we fall back
+  // to the default dark theme (all `tv` values stay undefined).
+  const value = valueByCategory(question.category);
+  const onWhite = value ? value.onColor === "white" : true;
+  const tv = value ? {
+    bg: value.color,
+    main: onWhite ? "#ffffff" : "#15233a",
+    subtle: onWhite ? "rgba(255,255,255,0.82)" : "rgba(21,35,58,0.72)",
+    track: onWhite ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.12)",
+    bar: onWhite ? "#ffffff" : "#15233a",
+  } : null;
   if (isPortrait) {
     return (
-      <motion.div {...pFade} className="min-h-screen flex flex-col" style={{ padding: "5%" }} data-testid="question-screen">
+      <motion.div {...pFade} className="min-h-screen flex flex-col" style={{ padding: "5%", ...(tv ? { background: tv.bg, color: tv.main } : {}) }} data-testid="question-screen">
         <div style={{ maxWidth: "80%", margin: "0 auto" }} className="flex flex-col items-center flex-1 w-full">
           <div className="flex items-center justify-center gap-3 mb-3 w-full">
             <img src={BRAND.logo} alt="" className="h-8 object-contain opacity-70" />
-            <span className="ds-small text-muted-foreground font-semibold">{BRAND.name}</span>
+            <span className="ds-small text-muted-foreground font-semibold" style={tv ? { color: tv.subtle } : undefined}>{BRAND.name}</span>
           </div>
 
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-secondary text-muted-foreground mb-2">
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ds-secondary text-muted-foreground mb-2" style={tv ? { color: tv.subtle } : undefined}>
             Question {question.index + 1} of {question.totalQuestions}
           </motion.span>
 
@@ -639,9 +650,9 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
             <CircularTimer timeLeft={timeLeft} timerDuration={question.timeLimit} size={120} />
           </div>
 
-          <div className="flex items-center justify-center gap-6 ds-small text-muted-foreground mt-auto">
+          <div className="flex items-center justify-center gap-6 ds-small text-muted-foreground mt-auto" style={tv ? { color: tv.subtle } : undefined}>
             <span dir="ltr" data-testid="text-answered-count">{answeredCount}/{totalPlayers} answered</span>
-            {paused && <span className="text-gold font-semibold">Paused</span>}
+            {paused && <span className="text-gold font-semibold" style={tv ? { color: tv.main } : undefined}>Paused</span>}
           </div>
         </div>
       </motion.div>
@@ -649,9 +660,9 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" data-testid="question-screen">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex flex-col p-8 lg:p-12" style={tv ? { background: tv.bg, color: tv.main } : undefined} data-testid="question-screen">
       <div className="flex items-center justify-between mb-6 gap-4">
-        <motion.span initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="text-muted-foreground ds-secondary">
+        <motion.span initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="text-muted-foreground ds-secondary" style={tv ? { color: tv.subtle } : undefined}>
           Question {question.index + 1} of {question.totalQuestions}
         </motion.span>
         {question.isDoublePoints && (
@@ -660,12 +671,13 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
           </motion.span>
         )}
         <div className="flex items-center gap-6">
-          <motion.span key={answeredCount} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-muted-foreground ds-secondary" data-testid="text-answered-count" dir="ltr">
+          <motion.span key={answeredCount} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-muted-foreground ds-secondary" style={tv ? { color: tv.subtle } : undefined} data-testid="text-answered-count" dir="ltr">
             {answeredCount}/{totalPlayers}
           </motion.span>
-          {paused && <span className="text-gold font-semibold ds-secondary">Paused</span>}
+          {paused && <span className="text-gold font-semibold ds-secondary" style={tv ? { color: tv.main } : undefined}>Paused</span>}
           <motion.span
             className={`font-bold tabular-nums ds-question ${timeLeft <= 5 ? "text-red-400" : "text-gold"}`}
+            style={tv && timeLeft > 5 ? { color: tv.main } : undefined}
             animate={timeLeft <= 5 && timeLeft > 0 ? { scale: [1, 1.15, 1] } : {}}
             transition={{ duration: 0.5, repeat: Infinity }}
             data-testid="text-timer"
@@ -674,19 +686,19 @@ function QuestionScreen({ question, timeLeft, timerPercent, paused, answeredCoun
           </motion.span>
         </div>
       </div>
-      <div className="w-full bg-muted rounded-full overflow-hidden mb-10" style={{ height: "clamp(12px, 0.5vw, 24px)" }}>
+      <div className="w-full bg-muted rounded-full overflow-hidden mb-10" style={{ height: "clamp(12px, 0.5vw, 24px)", ...(tv ? { background: tv.track } : {}) }}>
         <motion.div
           className="h-full rounded-full"
           style={{
             width: `${timerPercent}%`,
-            background: timerPercent > 30 ? `linear-gradient(90deg, ${BRAND.colors.gold}, ${BRAND.colors.goldLight})` : timerPercent > 10 ? `linear-gradient(90deg, ${BRAND.colors.goldAccent}, ${BRAND.colors.gold})` : `linear-gradient(90deg, #c44, ${BRAND.colors.goldAccent})`,
+            background: tv ? tv.bar : (timerPercent > 30 ? `linear-gradient(90deg, ${BRAND.colors.gold}, ${BRAND.colors.goldLight})` : timerPercent > 10 ? `linear-gradient(90deg, ${BRAND.colors.goldAccent}, ${BRAND.colors.gold})` : `linear-gradient(90deg, #c44, ${BRAND.colors.goldAccent})`),
           }}
           transition={{ duration: 0.1 }}
         />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center">
         {contextText && (
-          <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ds-secondary text-muted-foreground/70 text-center mb-4 italic" style={{ maxWidth: "80%" }} dir="auto" data-testid="text-context-ref">
+          <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ds-secondary text-muted-foreground/70 text-center mb-4 italic" style={{ maxWidth: "80%", ...(tv ? { color: tv.subtle } : {}) }} dir="auto" data-testid="text-context-ref">
             📖 {contextText}
           </motion.p>
         )}
