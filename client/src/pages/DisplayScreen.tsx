@@ -6,7 +6,10 @@ import { QRCodeSVG } from "qrcode.react";
 import confetti from "canvas-confetti";
 import { Maximize, Minimize } from "lucide-react";
 import { BRAND } from "@/brand";
+import { REGIONS } from "@shared/schema";
 import type { QuestionForBigScreen, QuestionReveal, LeaderboardEntry, FinalStats } from "@shared/schema";
+
+const REGION_LABEL: Record<string, string> = Object.fromEntries(REGIONS.map((r) => [r.key, r.label]));
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 const OPTION_COLORS = [
@@ -835,7 +838,10 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
                 >
                   {entry.rank}
                 </motion.span>
-                <span className="ds-secondary font-semibold flex-1" dir="auto">{entry.name}</span>
+                <span className="flex-1 min-w-0 flex items-center gap-2">
+              <span className="ds-secondary font-semibold truncate" dir="auto">{entry.name}</span>
+              {entry.region && <span className="ds-small text-gold-accent font-medium shrink-0">{REGION_LABEL[entry.region] || entry.region}</span>}
+            </span>
                 {entry.previousRank !== null && entry.previousRank !== entry.rank && (
                   <motion.span
                     initial={{ opacity: 0 }}
@@ -888,7 +894,10 @@ function LeaderboardScreen({ leaderboard, isPortrait }: { leaderboard: Leaderboa
             >
               {entry.rank}
             </motion.span>
-            <span className="ds-secondary font-semibold flex-1" dir="auto">{entry.name}</span>
+            <span className="flex-1 min-w-0 flex items-center gap-2">
+              <span className="ds-secondary font-semibold truncate" dir="auto">{entry.name}</span>
+              {entry.region && <span className="ds-small text-gold-accent font-medium shrink-0">{REGION_LABEL[entry.region] || entry.region}</span>}
+            </span>
             {entry.previousRank !== null && entry.previousRank !== entry.rank && (
               <motion.span
                 initial={{ y: entry.rank < entry.previousRank ? 20 : -20, opacity: 0 }}
