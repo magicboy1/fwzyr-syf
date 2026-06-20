@@ -322,6 +322,7 @@ export function getQuestionForPlayer(sessionId: string): QuestionForPlayer | nul
   return {
     index: session.currentQuestionIndex,
     text: q.text,
+    category: q.category || undefined,
     options: q.options,
     totalQuestions: session.questions.length,
     timeLimit: q.timeLimit || session.defaultTimeLimit,

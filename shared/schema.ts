@@ -133,6 +133,7 @@ export interface QuestionForBigScreen {
 export interface QuestionForPlayer {
   index: number;
   text: string;
+  category?: string;
   options: [string, string, string, string];
   totalQuestions: number;
   timeLimit: number;

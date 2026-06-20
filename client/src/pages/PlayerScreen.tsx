@@ -8,6 +8,7 @@ import confetti from "canvas-confetti";
 import type { QuestionForPlayer, PlayerFeedback } from "@shared/schema";
 import { REGIONS } from "@shared/schema";
 import { BRAND } from "@/brand";
+import { valueByCategory } from "@/lib/values";
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
@@ -272,8 +273,25 @@ export default function PlayerScreen() {
     });
   };
 
+  // While answering a value's question, tint the phone with that value's colour
+  // to match the big screen. Every other phase stays on the dark background.
+  const value = valueByCategory(question?.category);
+  const onWhite = value ? value.onColor === "white" : true;
+  const tv = value ? {
+    bg: value.color,
+    main: onWhite ? "#ffffff" : "#15233a",
+    subtle: onWhite ? "rgba(255,255,255,0.82)" : "rgba(21,35,58,0.72)",
+    track: onWhite ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.12)",
+  } : null;
+  const themed = tv && (phase === "QUESTION" || phase === "ANSWERED");
+
   return (
-    <div className="min-h-screen text-foreground flex flex-col" dir="ltr" data-testid="player-screen">
+    <div
+      className="min-h-screen text-foreground flex flex-col bg-background"
+      style={themed ? { background: tv.bg, color: tv.main } : undefined}
+      dir="ltr"
+      data-testid="player-screen"
+    >
       <AnimatePresence>
         {showCountdown && (
           <motion.div
@@ -435,7 +453,7 @@ export default function PlayerScreen() {
         {phase === "QUESTION" && question && (
           <motion.div key="question" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col p-4">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-muted-foreground">Question {question.index + 1}/{question.totalQuestions}</span>
+              <span className="text-sm text-muted-foreground" style={themed ? { color: tv.subtle } : undefined}>Question {question.index + 1}/{question.totalQuestions}</span>
               {question.isDoublePoints && (
                 <motion.span
                   animate={{ scale: [1, 1.15, 1] }}
@@ -447,6 +465,7 @@ export default function PlayerScreen() {
               )}
               <motion.span
                 className={`text-xl font-bold tabular-nums ${timeLeft <= 5 ? "text-red-400" : "text-gold"}`}
+                style={themed && timeLeft > 5 ? { color: tv.main } : undefined}
                 animate={timeLeft <= 5 && timeLeft > 0 ? { scale: [1, 1.2, 1] } : {}}
                 transition={{ duration: 0.5, repeat: Infinity }}
                 data-testid="text-player-timer"
@@ -455,12 +474,12 @@ export default function PlayerScreen() {
               </motion.span>
             </div>
 
-            <div className="mb-4 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="mb-4 h-2 bg-muted rounded-full overflow-hidden" style={themed ? { background: tv.track } : undefined}>
               <div
                 className="h-full rounded-full"
                 style={{
                   width: `${question.timeLimit > 0 ? (timeLeft / question.timeLimit) * 100 : 0}%`,
-                  background: (timeLeft / question.timeLimit) > 0.3 ? BRAND.colors.gold : (timeLeft / question.timeLimit) > 0.1 ? BRAND.colors.goldAccent : "#c44",
+                  background: themed ? tv.main : ((timeLeft / question.timeLimit) > 0.3 ? BRAND.colors.gold : (timeLeft / question.timeLimit) > 0.1 ? BRAND.colors.goldAccent : "#c44"),
                   transition: "width 0.3s linear",
                 }}
               />
@@ -541,6 +560,7 @@ export default function PlayerScreen() {
               animate={{ opacity: [0, 1, 0.5, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
               className="text-muted-foreground mt-2"
+              style={themed ? { color: tv.subtle } : undefined}
             >
               Waiting for results...
             </motion.p>
