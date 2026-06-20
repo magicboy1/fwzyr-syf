@@ -179,6 +179,10 @@ export default function HostScreen() {
     });
   };
   const handleEnd = () => emit("host:end");
+  // Always-available end: confirm first, since it's reachable mid-game now.
+  const handleEndConfirm = () => {
+    if (window.confirm("End the game now and show the final results?")) handleEnd();
+  };
   const handlePause = () => emit("host:pause");
   const handleResume = () => emit("host:resume");
   const handleRestart = () => { emit("host:restart"); setIsLastQuestion(false); };
@@ -339,8 +343,8 @@ export default function HostScreen() {
             </Button>
           )}
 
-          {phase === "QUESTION" && (
-            <Button onClick={handleEnd} variant="destructive" className="w-full h-12" data-testid="button-end-game">
+          {phase !== "END" && (
+            <Button onClick={handleEndConfirm} variant="destructive" className="w-full h-12" data-testid="button-end-game">
               <Square className="w-5 h-5 ml-2" /> End Game
             </Button>
           )}
