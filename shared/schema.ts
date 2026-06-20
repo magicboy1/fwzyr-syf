@@ -123,6 +123,7 @@ export interface FinalStats {
 export interface QuestionForBigScreen {
   index: number;
   context?: string;
+  category?: string;
   text: string;
   totalQuestions: number;
   timeLimit: number;

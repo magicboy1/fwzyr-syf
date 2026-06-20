@@ -281,6 +281,7 @@ export function nextQuestion(sessionId: string, contextPhase: boolean = false): 
   return {
     index: session.currentQuestionIndex,
     context: q.context || undefined,
+    category: q.category || undefined,
     text: q.text,
     totalQuestions: session.questions.length,
     timeLimit,
@@ -305,6 +306,7 @@ export function getBigScreenQuestion(sessionId: string): QuestionForBigScreen | 
   return {
     index: session.currentQuestionIndex,
     context: q.context || undefined,
+    category: q.category || undefined,
     text: q.text,
     totalQuestions: session.questions.length,
     timeLimit: q.timeLimit || session.defaultTimeLimit,

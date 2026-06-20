@@ -7,6 +7,7 @@ import confetti from "canvas-confetti";
 import { Maximize, Minimize } from "lucide-react";
 import { BRAND } from "@/brand";
 import { REGIONS } from "@shared/schema";
+import { valueByCategory } from "@/lib/values";
 import type { QuestionForBigScreen, QuestionReveal, LeaderboardEntry, FinalStats } from "@shared/schema";
 
 const REGION_LABEL: Record<string, string> = Object.fromEntries(REGIONS.map((r) => [r.key, r.label]));
@@ -51,7 +52,7 @@ export default function DisplayScreen() {
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownNum, setCountdownNum] = useState(3);
-  const [contextData, setContextData] = useState<{ context: string; index: number; totalQuestions: number } | null>(null);
+  const [contextData, setContextData] = useState<{ context: string; category?: string; index: number; totalQuestions: number } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -361,7 +362,7 @@ export default function DisplayScreen() {
       )}
 
       {phase === "LOBBY" && <LobbyScreen sessionId={sessionId} joinUrl={joinUrl} playerCount={playerCount} isPortrait={isPortrait} />}
-      {phase === "CONTEXT" && contextData && <ContextScreen context={contextData.context} index={contextData.index} totalQuestions={contextData.totalQuestions} isPortrait={isPortrait} />}
+      {phase === "CONTEXT" && contextData && <ContextScreen context={contextData.context} category={contextData.category} index={contextData.index} totalQuestions={contextData.totalQuestions} isPortrait={isPortrait} />}
       {phase === "QUESTION" && question && (
         <QuestionScreen question={question} timeLeft={timeLeft} timerPercent={timerPercent} paused={paused} answeredCount={answeredCount} totalPlayers={totalPlayers} contextText={contextData?.context} isPortrait={isPortrait} />
       )}
@@ -372,7 +373,8 @@ export default function DisplayScreen() {
   );
 }
 
-function ContextScreen({ context, index, totalQuestions, isPortrait }: { context: string; index: number; totalQuestions: number; isPortrait: boolean }) {
+function ContextScreen({ context, category, index, totalQuestions, isPortrait }: { context: string; category?: string; index: number; totalQuestions: number; isPortrait: boolean }) {
+  const value = valueByCategory(category);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -386,67 +388,70 @@ function ContextScreen({ context, index, totalQuestions, isPortrait }: { context
     return () => clearInterval(interval);
   }, []);
 
-  if (isPortrait) {
+  // Fallback (no matching value) — keep the old neutral intro.
+  if (!value) {
     return (
-      <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center" style={{ padding: "5%" }} data-testid="context-screen">
-        <div style={{ maxWidth: "80%" }} className="flex flex-col items-center text-center">
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="ds-secondary text-muted-foreground mb-3">
-            Question {index + 1} of {totalQuestions}
-          </motion.span>
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-gold ds-small font-semibold tracking-wide mb-6">
-            📖 Read the intro
-          </motion.span>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4, duration: 0.7 }}
-            className="bg-card/60 border border-gold/20 rounded-2xl px-8 py-8 w-full"
-          >
-            <p className="ds-question text-foreground text-center leading-relaxed font-bold" dir="auto" data-testid="text-context">
-              {context}
-            </p>
-          </motion.div>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-8 w-48">
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-gold/60 transition-all duration-100" style={{ width: `${progress}%` }} />
-            </div>
-            <p className="ds-small text-muted-foreground text-center mt-2">Question coming up...</p>
-          </motion.div>
-        </div>
+      <motion.div {...pFade} className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-16" data-testid="context-screen">
+        <motion.div className="bg-card/60 border border-gold/20 rounded-2xl" style={{ maxWidth: "80%", padding: "clamp(32px, 3vw, 72px)" }}>
+          <p className="ds-question text-foreground text-center leading-relaxed font-bold" dir="auto" data-testid="text-context">{context}</p>
+        </motion.div>
       </motion.div>
     );
   }
 
+  const onWhite = value.onColor === "white";
+  const textMain = onWhite ? "#ffffff" : "#15233a";
+  const subtle = onWhite ? "rgba(255,255,255,0.78)" : "rgba(21,35,58,0.7)";
+  const chipBg = onWhite ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.08)";
+  const chipBorder = onWhite ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.18)";
+  const barFill = onWhite ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.45)";
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-16"
+      {...pFade}
+      className="min-h-screen flex flex-col items-center justify-center p-8 lg:p-16 text-center"
+      style={{ background: value.color, color: textMain }}
       data-testid="context-screen"
     >
-      <motion.span initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-muted-foreground ds-secondary mb-4">
-        Question {index + 1} of {totalQuestions}
+      <motion.span initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        className="ds-small font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: subtle }}>
+        Core Value
       </motion.span>
-      <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-gold ds-small font-semibold tracking-wide mb-6">
-        📖 Read the intro
-      </motion.span>
+
+      {/* icon (swapped to the real SVG once provided) */}
       <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ delay: 0.4, duration: 0.7, type: "spring", bounce: 0.2 }}
-        className="bg-card/60 border border-gold/20 rounded-2xl" style={{ maxWidth: "80%", padding: "clamp(32px, 3vw, 72px)" }}
+        initial={{ scale: 0, rotate: -12 }} animate={{ scale: 1, rotate: 0 }}
+        transition={{ delay: 0.2, type: "spring", bounce: 0.45 }}
+        className="mb-6 flex items-center justify-center rounded-3xl"
+        style={{ width: "clamp(96px, 9vw, 190px)", height: "clamp(96px, 9vw, 190px)", background: chipBg, border: `2px solid ${chipBorder}` }}
+        data-testid="value-icon"
       >
-        <p className="ds-question text-foreground text-center leading-relaxed font-bold" dir="auto" data-testid="text-context">
-          {context}
-        </p>
+        {value.icon
+          ? <img src={value.icon} alt="" style={{ width: "68%", height: "68%", objectFit: "contain" }} />
+          : <span className="ds-question font-bold" style={{ color: textMain }}>{value.name.charAt(0)}</span>}
       </motion.div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-10" style={{ width: "clamp(200px, 15vw, 400px)" }}>
-        <div className="w-full bg-muted rounded-full overflow-hidden" style={{ height: "clamp(6px, 0.3vw, 12px)" }}>
-          <div className="h-full rounded-full bg-gold/60 transition-all duration-100" style={{ width: `${progress}%` }} />
+
+      <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+        className="ds-question font-bold leading-tight mb-7" style={{ maxWidth: "88%" }} dir="auto" data-testid="text-value-name">
+        {value.name}
+      </motion.h1>
+
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
+        className="flex flex-wrap items-center justify-center gap-3 mb-10" style={{ maxWidth: "82%" }}>
+        {value.behaviors.map((b, i) => (
+          <motion.span key={b} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 + i * 0.08, type: "spring", bounce: 0.4 }}
+            className="ds-secondary font-semibold rounded-full px-6 py-2" style={{ background: chipBg, border: `1px solid ${chipBorder}`, color: textMain }}>
+            {b}
+          </motion.span>
+        ))}
+      </motion.div>
+
+      <div style={{ width: "clamp(200px, 15vw, 400px)" }}>
+        <div className="w-full rounded-full overflow-hidden" style={{ height: "clamp(6px, 0.3vw, 12px)", background: chipBg }}>
+          <div className="h-full rounded-full transition-all duration-100" style={{ width: `${progress}%`, background: barFill }} />
         </div>
-        <p className="ds-small text-muted-foreground text-center mt-2">Question coming up...</p>
-      </motion.div>
+        <p className="ds-small text-center mt-2" style={{ color: subtle }}>Question coming up...</p>
+      </div>
     </motion.div>
   );
 }

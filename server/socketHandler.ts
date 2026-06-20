@@ -122,6 +122,7 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     if (hasContext) {
       io.to(`display:${sessionId}`).emit("game:context", {
         context: question.context,
+        category: question.category,
         index: question.index,
         totalQuestions: question.totalQuestions,
         duration: CONTEXT_DURATION,
