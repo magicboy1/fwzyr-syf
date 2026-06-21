@@ -254,6 +254,8 @@ export async function registerRoutes(
         sessionId: s.id,
         phase: s.phase,
         playerCount: Object.keys(s.players).length,
+        createdAt: s.createdAt,
+        endedAt: s.endedAt ?? null,
         winners: getWinnersWithEmail(s.id),
         regionWinners: getRegionWinnersWithEmail(s.id),
       }));
