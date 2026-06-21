@@ -7,7 +7,7 @@ import type { Question } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
-import { getAllSessions, getWinnersWithEmail, getRegionWinnersWithEmail } from "./gameEngine";
+import { getAllSessions, getWinnersWithEmail, getRegionWinnersWithEmail, deleteSession } from "./gameEngine";
 
 const QUESTIONS_FILE = path.join(process.cwd(), "data", "questions.json");
 
@@ -264,6 +264,15 @@ export async function registerRoutes(
 
   app.post("/api/sessions/:id/end", requireAdmin, (req, res) => {
     if (!forceEndSession(req.params.id)) {
+      res.status(404).json({ error: "Session not found" });
+      return;
+    }
+    res.json({ success: true });
+  });
+
+  // Permanently remove a session (e.g. to clean up test/leftover sessions).
+  app.delete("/api/sessions/:id", requireAdmin, (req, res) => {
+    if (!deleteSession(req.params.id)) {
       res.status(404).json({ error: "Session not found" });
       return;
     }

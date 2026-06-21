@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Trophy, Mail, Square, MapPin, ArrowRight, Download, Radio, History } from "lucide-react";
+import { Trophy, Mail, Square, MapPin, ArrowRight, Download, Radio, History, Trash2 } from "lucide-react";
 
 function downloadWinnersCsv(session: SessionWinners) {
   const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
@@ -61,6 +61,11 @@ export default function WinnersScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/sessions/winners"] }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (sessionId: string) => apiRequest("DELETE", `/api/sessions/${sessionId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/sessions/winners"] }),
+  });
+
   const active = sessions.filter((s) => s.phase !== "END");
   const history = sessions
     .filter((s) => s.phase === "END")
@@ -104,6 +109,17 @@ export default function WinnersScreen() {
                 <Square className="w-4 h-4 mr-1" /> End Game
               </Button>
             )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-muted-foreground hover:text-red-400"
+              onClick={() => { if (confirm("Delete this session permanently? This removes it from the list and cannot be undone.")) deleteMutation.mutate(session.sessionId); }}
+              disabled={deleteMutation.isPending}
+              title="Delete session"
+              data-testid={`button-delete-${session.sessionId.slice(0, 8)}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
