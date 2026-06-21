@@ -70,6 +70,8 @@ export interface GameSession {
   streakAlerts: { playerName: string; streak: number }[];
   previousRanks: Record<string, number>;
   createdAt: number;
+  /** When the game finished (phase END). Drives how long winners are retained. */
+  endedAt?: number;
   // Last computed views, so a display that joins/refreshes mid-phase can be
   // hydrated (otherwise the big screen renders blank until the next host action).
   lastReveal?: QuestionReveal | null;

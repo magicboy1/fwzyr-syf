@@ -37,16 +37,17 @@ const sessions = new Map<string, GameSession>();
 // Bounds so anyone calling host:create (it is unauthenticated by design) cannot
 // grow memory without limit, and stale sessions don't accumulate forever.
 const MAX_SESSIONS = 200;
-const SESSION_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6h
-const ENDED_SESSION_GRACE_MS = 30 * 60 * 1000; // keep finished games 30m for winners lookup
+const SESSION_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6h — abandoned games that never finished
+// Finished games hold the winners. Keep them for 30 days FROM WHEN THEY ENDED so
+// the results stay retrievable long after the event (download the CSV anytime).
+const WINNERS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 function reapStaleSessions(): void {
   const now = Date.now();
   for (const [id, s] of Array.from(sessions.entries())) {
-    const age = now - s.createdAt;
-    if (age > SESSION_MAX_AGE_MS) {
-      sessions.delete(id);
-    } else if (s.phase === "END" && age > ENDED_SESSION_GRACE_MS) {
+    if (s.phase === "END") {
+      if (now - (s.endedAt ?? s.createdAt) > WINNERS_RETENTION_MS) sessions.delete(id);
+    } else if (now - s.createdAt > SESSION_MAX_AGE_MS) {
       sessions.delete(id);
     }
   }
@@ -105,9 +106,11 @@ function restoreSessions(): void {
     let restored = 0;
     for (const s of arr) {
       if (!s || typeof s.id !== "string") continue;
-      const age = now - (s.createdAt ?? 0);
-      if (age > SESSION_MAX_AGE_MS) continue;
-      if (s.phase === "END" && age > ENDED_SESSION_GRACE_MS) continue;
+      if (s.phase === "END") {
+        if (now - (s.endedAt ?? s.createdAt ?? 0) > WINNERS_RETENTION_MS) continue;
+      } else if (now - (s.createdAt ?? 0) > SESSION_MAX_AGE_MS) {
+        continue;
+      }
       // Mark everyone disconnected until their socket reconnects.
       for (const pid of Object.keys(s.players || {})) {
         s.players[pid].connected = false;
@@ -573,6 +576,7 @@ export function endGame(sessionId: string): FinalStats | null {
   if (!session) return null;
 
   session.phase = "END";
+  session.endedAt = Date.now();
 
   const players = Object.values(session.players);
   const answers = session.answers;
