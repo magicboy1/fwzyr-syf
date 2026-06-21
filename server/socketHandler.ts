@@ -116,7 +116,14 @@ export function setupSocketIO(httpServer: HttpServer): SocketServer {
     const session = getSession(sessionId);
     if (!session) return;
     const nextIdx = session.currentQuestionIndex + 1;
-    const hasContext = nextIdx < session.questions.length && !!(session.questions[nextIdx].context?.trim());
+    const nextQ = nextIdx < session.questions.length ? session.questions[nextIdx] : null;
+    // Show the value-intro slide whenever we ENTER A NEW VALUE (the category
+    // changes from the previous question), or when a question carries an explicit
+    // context note. Triggering on category change means the intro shows once per
+    // value even if the questions have no `context` field set (e.g. imported).
+    const prevCat = session.currentQuestionIndex >= 0 ? (session.questions[session.currentQuestionIndex]?.category?.trim() || "") : "";
+    const nextCat = nextQ?.category?.trim() || "";
+    const hasContext = !!nextQ && ((!!nextCat && nextCat !== prevCat) || !!nextQ.context?.trim());
 
     const question = nextQuestion(sessionId, hasContext);
     if (!question) {
