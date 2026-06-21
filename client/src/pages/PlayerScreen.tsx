@@ -55,6 +55,7 @@ export default function PlayerScreen() {
   const [question, setQuestion] = useState<QuestionForPlayer | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<PlayerFeedback | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [score, setScore] = useState(0);
   const [endResult, setEndResult] = useState<EndResult | null>(null);
@@ -63,9 +64,11 @@ export default function PlayerScreen() {
   const [countdownNum, setCountdownNum] = useState(3);
   const feedbackRef = useRef<PlayerFeedback | null>(null);
   const phaseRef = useRef(phase);
+  const scoreRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   phaseRef.current = phase;
+  scoreRef.current = score;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -115,6 +118,7 @@ export default function PlayerScreen() {
       setSelectedAnswer(null);
       setFeedback(null);
       feedbackRef.current = null;
+      setTimedOut(false);
       setTimeLeft(data.question.timeLimit);
 
       if (countdownRef.current) clearInterval(countdownRef.current);
@@ -154,8 +158,14 @@ export default function PlayerScreen() {
       if (phaseRef.current === "QUESTION") setPhase("ANSWERED");
     });
 
-    socket.on("game:reveal", () => {
+    socket.on("game:reveal", (data: any) => {
+      // Always stop the question timer and leave the question screen — even for
+      // players who never answered (the host can reveal early). Otherwise the
+      // phone is stuck on the question with the timer still ticking.
+      if (timerRef.current) clearInterval(timerRef.current);
+      setTimeLeft(0);
       if (feedbackRef.current) {
+        setTimedOut(false);
         setPhase("FEEDBACK");
         if (feedbackRef.current.correct) {
           confetti({
@@ -165,6 +175,21 @@ export default function PlayerScreen() {
             colors: [BRAND.colors.gold, "#22c55e", BRAND.colors.goldLight],
           });
         }
+      } else {
+        // Never answered → show a "time's up" result instead of a frozen screen.
+        const synthetic: PlayerFeedback = {
+          correct: false,
+          correctAnswer: data?.reveal?.correct ?? "A",
+          pointsGained: 0,
+          totalScore: scoreRef.current,
+          rank: 0,
+          streak: 0,
+          streakBonus: false,
+        };
+        feedbackRef.current = synthetic;
+        setFeedback(synthetic);
+        setTimedOut(true);
+        setPhase("FEEDBACK");
       }
     });
 
@@ -634,10 +659,12 @@ export default function PlayerScreen() {
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", bounce: 0.5, duration: 0.6 }}
-              className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${feedback.correct ? "bg-green-500/20" : "bg-red-500/20"}`}
+              className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${feedback.correct ? "bg-green-500/20" : timedOut ? "bg-gold/20" : "bg-red-500/20"}`}
             >
               {feedback.correct ? (
                 <svg className="w-14 h-14 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+              ) : timedOut ? (
+                <svg className="w-14 h-14 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               ) : (
                 <motion.svg
                   animate={{ rotate: [0, 10, -10, 0] }}
@@ -656,10 +683,15 @@ export default function PlayerScreen() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2, type: "spring" }}
-              className={`text-2xl font-bold mb-2 ${feedback.correct ? "text-green-400" : "text-red-400"}`}
+              className={`text-2xl font-bold mb-2 ${feedback.correct ? "text-green-400" : timedOut ? "text-gold" : "text-red-400"}`}
             >
-              {feedback.correct ? "Correct!" : "Wrong!"}
+              {feedback.correct ? "Correct!" : timedOut ? "Time's up!" : "Wrong!"}
             </motion.h3>
+            {timedOut && (
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-muted-foreground text-sm mb-1">
+                You didn't answer in time
+              </motion.p>
+            )}
 
             {feedback.pointsGained > 0 && (
               <motion.p
@@ -691,7 +723,7 @@ export default function PlayerScreen() {
               className="mt-4 space-y-2 text-center"
             >
               <p className="text-muted-foreground">Total: <span className="text-foreground font-bold" dir="ltr">{feedback.totalScore.toLocaleString()}</span></p>
-              <p className="text-muted-foreground">Rank: <span className="text-foreground font-bold">#{feedback.rank}</span></p>
+              {!timedOut && <p className="text-muted-foreground">Rank: <span className="text-foreground font-bold">#{feedback.rank}</span></p>}
               {feedback.streak >= 2 && (
                 <motion.p
                   animate={{ scale: [1, 1.1, 1] }}
